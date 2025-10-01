@@ -271,6 +271,9 @@ class PiCameraController:
         try:
             with open(config_path, 'r') as file:
                 config = yaml.safe_load(file)
+            
+            # Expand paths with ~ and environment variables
+            config = self._expand_paths(config)
             return config
         except FileNotFoundError:
             print(f"Error: Configuration file '{config_path}' not found")
@@ -278,6 +281,33 @@ class PiCameraController:
         except yaml.YAMLError as e:
             print(f"Error parsing YAML configuration: {e}")
             sys.exit(1)
+    
+    def _expand_paths(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Expand ~ and environment variables in path configurations"""
+        # Paths that need expansion
+        path_keys = [
+            'timelapse.output_dir',
+            'storage.backup_path', 
+            'system.log_file'
+        ]
+        
+        for key_path in path_keys:
+            keys = key_path.split('.')
+            current = config
+            
+            # Navigate to the nested key
+            for key in keys[:-1]:
+                if key in current:
+                    current = current[key]
+                else:
+                    break
+            else:
+                # Expand the final key if it exists
+                final_key = keys[-1]
+                if final_key in current and isinstance(current[final_key], str):
+                    current[final_key] = os.path.expanduser(os.path.expandvars(current[final_key]))
+        
+        return config
     
     def _setup_logging(self) -> logging.Logger:
         """Setup logging configuration"""

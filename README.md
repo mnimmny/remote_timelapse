@@ -73,11 +73,12 @@ Edit `config.yaml` to customize your camera settings:
 ### Timelapse Settings
 - **Interval**: Seconds between captures (default: 5)
 - **Duration**: Total timelapse duration in seconds (default: 3600 = 1 hour)
-- **Output Directory**: Where to save images
+- **Output Directory**: Where to save images (supports `~` and environment variables)
 - **Video Creation**: Enable/disable automatic video creation
 
 ### System Settings
 - **Log Level**: DEBUG, INFO, WARNING, ERROR
+- **Log File**: Path to log file (supports `~` and environment variables)
 - **Temperature Warning**: CPU temperature threshold
 - **Disk Space Warning**: Free space threshold
 
@@ -206,6 +207,26 @@ slack:
     photo_quality: 30
     temperature_alerts: true
     disk_space_alerts: true
+```
+
+### Path Configuration
+The script supports flexible path configuration using environment variables and home directory expansion:
+
+```yaml
+timelapse:
+  output_dir: "~/timelapse_images"  # Expands to /home/username/timelapse_images
+
+storage:
+  backup_path: "~/backup"  # Expands to /home/username/backup
+
+system:
+  log_file: "~/camera.log"  # Expands to /home/username/camera.log
+```
+
+You can also use environment variables:
+```yaml
+timelapse:
+  output_dir: "$HOME/timelapse_images"  # Uses $HOME environment variable
 ```
 
 ## Error Recovery

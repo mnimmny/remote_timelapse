@@ -33,7 +33,7 @@ timelapse:
   enabled: true
   interval: 5  # seconds between captures
   duration: 3600  # total duration in seconds (1 hour)
-  output_dir: "/home/pi/timelapse_images"
+  output_dir: "~/timelapse_images"  # Uses $HOME environment variable
   filename_prefix: "timelapse_"
   create_video: true
   video_fps: 30
@@ -43,12 +43,12 @@ storage:
   max_images: 100000  # maximum number of images to keep
   cleanup_old: true  # automatically delete old images
   backup_enabled: false
-  backup_path: "/home/pi/backup"
+  backup_path: "~/backup"  # Uses $HOME environment variable
 
 # System settings
 system:
   log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
-  log_file: "/home/pi/camera.log"
+  log_file: "~/camera.log"  # Uses $HOME environment variable
   temperature_warning: 80  # Celsius
   low_disk_warning: 100  # MB free space threshold
 
