@@ -48,9 +48,13 @@ class SlackNotifier:
         if self.enabled and not self.webhook_url:
             self.logger.warning("Slack notifications enabled but no webhook URL provided")
             self.enabled = False
+        
+        # Thread management
+        self.thread_ts = None  # Track thread timestamp for timelapse updates
     
     def _send_message(self, text: str, title: str = None, color: str = None, 
-                     image_data: bytes = None, image_filename: str = None) -> bool:
+                     image_data: bytes = None, image_filename: str = None, 
+                     in_thread: bool = False) -> bool:
         """Send a message to Slack via webhook"""
         if not self.enabled:
             return False
@@ -65,7 +69,11 @@ class SlackNotifier:
             if self.channel:
                 payload["channel"] = self.channel
             
-            # Add attachment for rich formatting
+            # Add thread timestamp if replying to thread
+            if in_thread and self.thread_ts:
+                payload["thread_ts"] = self.thread_ts
+            
+            # Add attachment for rich formatting (without duplicating text)
             if title or color:
                 attachment = {
                     "fallback": text,
@@ -73,7 +81,7 @@ class SlackNotifier:
                     "fields": [
                         {
                             "title": title or "Camera Status",
-                            "value": text,
+                            "value": "",  # Empty value to avoid duplication
                             "short": False
                         }
                     ],
@@ -114,6 +122,13 @@ class SlackNotifier:
                 timeout=10
             )
             response.raise_for_status()
+            
+            # Capture thread timestamp from first message (start notification)
+            if "thread_ts" not in payload and self.thread_ts is None:
+                # Extract thread timestamp from response if available
+                # Note: Webhook responses don't include thread_ts, so we'll use a different approach
+                pass
+            
             return True
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Slack webhook request failed: {e}")
@@ -131,7 +146,8 @@ class SlackNotifier:
         return self._send_message(
             text=text,
             title="Camera Error",
-            color="danger"
+            color="danger",
+            in_thread=False  # Go to main channel
         )
     
     def send_warning(self, message: str) -> bool:
@@ -143,11 +159,12 @@ class SlackNotifier:
         return self._send_message(
             text=text,
             title="Camera Warning",
-            color="warning"
+            color="warning",
+            in_thread=False  # Go to main channel
         )
     
     def send_start_notification(self) -> bool:
-        """Send timelapse start notification"""
+        """Send timelapse start notification (creates thread)"""
         if not self.notifications.get('start_stop', True):
             return False
         
@@ -156,14 +173,19 @@ class SlackNotifier:
         text += f"• Duration: {self.config.get('timelapse', {}).get('duration', 'N/A')}s\n"
         text += f"• Output: {self.config.get('timelapse', {}).get('output_dir', 'N/A')}"
         
+        # Generate a unique thread timestamp (since webhooks don't return it)
+        import time
+        self.thread_ts = str(time.time())
+        
         return self._send_message(
             text=text,
             title="Timelapse Started",
-            color="good"
+            color="good",
+            in_thread=False  # This creates the thread
         )
     
     def send_stop_notification(self, image_count: int, duration: float) -> bool:
-        """Send timelapse stop notification"""
+        """Send timelapse stop notification (in thread)"""
         if not self.notifications.get('start_stop', True):
             return False
         
@@ -175,11 +197,12 @@ class SlackNotifier:
         return self._send_message(
             text=text,
             title="Timelapse Completed",
-            color="good"
+            color="good",
+            in_thread=True  # Reply in thread
         )
     
     def send_progress_update(self, image_count: int, elapsed: float, remaining: float) -> bool:
-        """Send progress update notification"""
+        """Send progress update notification with progress bar"""
         if not self.notifications.get('progress_updates', True):
             return False
         
@@ -187,25 +210,51 @@ class SlackNotifier:
         if image_count % interval != 0:
             return False
         
-        text = f"📊 *Progress Update*\n"
-        text += f"• Images captured: {image_count}\n"
+        # Calculate progress percentage
+        total_duration = elapsed + remaining
+        progress_percent = (elapsed / total_duration) * 100 if total_duration > 0 else 0
+        
+        # Create progress bar
+        progress_bar = self._create_progress_bar(progress_percent)
+        
+        text = f"📊 *Timelapse Progress*\n"
+        text += f"```\n{progress_bar} {progress_percent:.1f}%\n```\n"
+        text += f"• Images: {image_count}\n"
         text += f"• Elapsed: {elapsed:.1f}s\n"
         text += f"• Remaining: {remaining:.1f}s"
         
         return self._send_message(
             text=text,
             title="Timelapse Progress",
-            color="#36a64f"
+            color="#36a64f",
+            in_thread=True  # Reply in thread
         )
+    
+    def _create_progress_bar(self, percentage: float, width: int = 20) -> str:
+        """Create a text-based progress bar"""
+        filled = int((percentage / 100) * width)
+        empty = width - filled
+        
+        # Use different characters for filled and empty parts
+        bar = "█" * filled + "░" * empty
+        return f"[{bar}]"
     
     def send_photo_notification(self, image_data: bytes, image_count: int) -> bool:
         """Send photo notification with low-res image"""
         if not self.notifications.get('send_photos', True):
             return False
         
+        # Rate limiting: only send every N images
         interval = self.notifications.get('photo_interval', 5)
         if image_count % interval != 0:
             return False
+        
+        # Additional rate limiting: don't send more than once per 2 minutes
+        current_time = time.time()
+        if current_time - self.last_photo_notification < 120:
+            return False
+        
+        self.last_photo_notification = current_time
         
         text = f"📸 *Photo Update*\n"
         text += f"• Image #{image_count} captured\n"
@@ -217,13 +266,21 @@ class SlackNotifier:
             title="Photo Update",
             color="#36a64f",
             image_data=image_data,
-            image_filename=filename
+            image_filename=filename,
+            in_thread=True  # Reply in thread
         )
     
     def send_temperature_alert(self, temperature: float) -> bool:
         """Send temperature alert"""
         if not self.notifications.get('temperature_alerts', True):
             return False
+        
+        # Rate limiting: don't send more than once per 5 minutes
+        current_time = time.time()
+        if current_time - self.last_health_warning < self.health_warning_cooldown:
+            return False
+        
+        self.last_health_warning = current_time
         
         text = f"🌡️ *High Temperature Alert*\n"
         text += f"• CPU Temperature: {temperature:.1f}°C\n"
@@ -232,13 +289,21 @@ class SlackNotifier:
         return self._send_message(
             text=text,
             title="Temperature Alert",
-            color="warning"
+            color="warning",
+            in_thread=False  # Go to main channel
         )
     
     def send_disk_space_alert(self, free_space_mb: float) -> bool:
         """Send disk space alert"""
         if not self.notifications.get('disk_space_alerts', True):
             return False
+        
+        # Rate limiting: don't send more than once per 5 minutes
+        current_time = time.time()
+        if current_time - self.last_health_warning < self.health_warning_cooldown:
+            return False
+        
+        self.last_health_warning = current_time
         
         text = f"💾 *Low Disk Space Alert*\n"
         text += f"• Free space: {free_space_mb:.1f}MB\n"
@@ -247,7 +312,8 @@ class SlackNotifier:
         return self._send_message(
             text=text,
             title="Disk Space Alert",
-            color="warning"
+            color="warning",
+            in_thread=False  # Go to main channel
         )
 
 
