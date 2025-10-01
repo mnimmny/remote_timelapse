@@ -587,11 +587,20 @@ class PiCameraController:
             height = photo_config.get('photo_resolution', {}).get('height', 480)
             quality = photo_config.get('photo_quality', 30)
             
-            # Create temporary low-res configuration
+            # Create temporary low-res configuration with same transform settings
+            vflip = self.config['camera'].get('vflip', False)
+            hflip = self.config['camera'].get('hflip', False)
+            
             lowres_config = self.camera.create_still_configuration(
                 main={"size": (width, height)},
                 buffer_count=1
             )
+            
+            # Apply same transform settings to low-res config
+            if vflip or hflip:
+                from libcamera import Transform
+                transform = Transform(vflip=vflip, hflip=hflip)
+                lowres_config["transform"] = transform
             
             # Switch to low-res config temporarily
             self.camera.switch_mode(lowres_config)
@@ -602,7 +611,7 @@ class PiCameraController:
             self.camera.capture_file(image_stream, format='jpeg')
             image_data = image_stream.getvalue()
             
-            # Switch back to main config
+            # Switch back to main config with same transform settings
             main_config = self.camera.create_still_configuration(
                 main={
                     "size": (
@@ -612,6 +621,13 @@ class PiCameraController:
                 },
                 buffer_count=2
             )
+            
+            # Apply same transform settings to main config
+            if vflip or hflip:
+                from libcamera import Transform
+                transform = Transform(vflip=vflip, hflip=hflip)
+                main_config["transform"] = transform
+            
             self.camera.switch_mode(main_config)
             
             # Send photo notification
