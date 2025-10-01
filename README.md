@@ -15,6 +15,11 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
 - **Robust Error Handling**: Comprehensive logging and error recovery
 - **Pi Zero W Optimized**: Settings optimized for Pi Zero W performance
 
+### TO DOs/Potential Feature roadmap?
+- **Slack command control**: 1. start/stop/restart timelapses 2. request low-res photo (slash commands or app buttons)
+- **Camera auto adjustment for environment**: 
+- **Separate LED contol**
+
 ## Requirements
 
 - Raspberry Pi Zero W (or compatible Pi)
