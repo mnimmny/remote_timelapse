@@ -380,6 +380,17 @@ class PiCameraController:
                 buffer_count=2
             )
             
+            # Add transform settings if needed
+            vflip = self.config['camera'].get('vflip', False)
+            hflip = self.config['camera'].get('hflip', False)
+            
+            if vflip or hflip:
+                camera_config["transform"] = {}
+                if vflip:
+                    camera_config["transform"]["vflip"] = True
+                if hflip:
+                    camera_config["transform"]["hflip"] = True
+            
             self.camera.configure(camera_config)
             
             # Set camera controls
@@ -418,13 +429,7 @@ class PiCameraController:
                 "Sharpness": self.config['camera']['sharpness']
             }
             
-            # Add flip controls if enabled
-            vflip = self.config['camera'].get('vflip', False)
-            hflip = self.config['camera'].get('hflip', False)
-            
-            if vflip or hflip:
-                controls_dict["ScalerCrop"] = (0, 0, 1, 1)  # Reset crop first
-                controls_dict["Transform"] = controls.Transform(vflip=vflip, hflip=hflip)
+            # Note: Flip controls are handled in camera configuration above
             
             self.camera.set_controls(controls_dict)
             
