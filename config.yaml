@@ -1,0 +1,84 @@
+# Raspberry Pi Camera 3 Configuration
+# Optimized for Pi Zero W
+
+camera:
+  # Image settings
+  resolution:
+    width: 1920
+    height: 1080
+  
+  # Quality settings
+  quality: 85  # JPEG quality (1-100)
+  
+  # Camera mode settings
+  framerate: 30
+  sensor_mode: 0  # 0=auto, 1=1080p30, 2=1080p60, 3=4K
+  
+  # Exposure and focus
+  exposure_mode: "auto"  # auto, night, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks
+  awb_mode: "auto"  # auto, off, sunlight, cloudy, shade, tungsten, fluorescent, incandescent, flash, horizon
+  focus_mode: "auto"  # auto, manual, continuous
+  
+  # Image effects
+  image_effect: "none"  # none, negative, solarize, sketch, denoise, emboss, oilpaint, hatch, gpen, pastel, watercolor, film, blur, saturation, colorswap, washedout, posterise, colorpoint, colorbalance, cartoon, deinterlace1, deinterlace2
+  
+  # Color settings
+  brightness: 0.0  # -1.0 to 1.0
+  contrast: 1.0    # 0.0 to 2.0
+  saturation: 1.0  # 0.0 to 2.0
+  sharpness: 1.0   # 0.0 to 2.0
+
+# Timelapse settings
+timelapse:
+  enabled: true
+  interval: 5  # seconds between captures
+  duration: 3600  # total duration in seconds (1 hour)
+  output_dir: "/home/pi/timelapse_images"
+  filename_prefix: "timelapse_"
+  create_video: true
+  video_fps: 30
+
+# Storage settings
+storage:
+  max_images: 100000  # maximum number of images to keep
+  cleanup_old: true  # automatically delete old images
+  backup_enabled: false
+  backup_path: "/home/pi/backup"
+
+# System settings
+system:
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_file: "/home/pi/camera.log"
+  temperature_warning: 80  # Celsius
+  low_disk_warning: 100  # MB free space threshold
+
+# Slack notifications
+slack:
+  enabled: true
+  webhook_url: "https://hooks.slack.com/services/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"  # Add your Slack webhook URL here
+  channel: "#timelapse-notifications"  # Optional: override default channel
+  username: "Pi Camera Bot"
+  #icon_emoji: ":camera:"
+  
+  # Notification settings
+  notifications:
+    # Error notifications
+    errors: true
+    warnings: true
+    
+    # Status notifications
+    start_stop: true
+    progress_updates: true
+    progress_interval: 10  # Send progress every N images
+    
+    # Photo notifications
+    send_photos: true
+    photo_interval: 10  # Send low-res photo every N images
+    photo_quality: 30  # Low quality for faster upload
+    photo_resolution:
+      width: 640
+      height: 480
+    
+    # System health notifications
+    temperature_alerts: true
+    disk_space_alerts: true
