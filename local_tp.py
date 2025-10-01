@@ -385,11 +385,9 @@ class PiCameraController:
             hflip = self.config['camera'].get('hflip', False)
             
             if vflip or hflip:
-                camera_config["transform"] = {}
-                if vflip:
-                    camera_config["transform"]["vflip"] = True
-                if hflip:
-                    camera_config["transform"]["hflip"] = True
+                from libcamera import Transform
+                transform = Transform(vflip=vflip, hflip=hflip)
+                camera_config["transform"] = transform
             
             self.camera.configure(camera_config)
             
