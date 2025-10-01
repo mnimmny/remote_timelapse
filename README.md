@@ -46,7 +46,7 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
    - Create a new app or use an existing one
    - Add "Incoming Webhooks" feature
    - Create a webhook URL
-   - Add the webhook URL to `config.yaml` under `slack.webhook_url`
+   - Set the environment variable: `export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"`
 
 4. **Enable camera interface:**
    ```bash
@@ -69,6 +69,7 @@ Edit `config.yaml` to customize your camera settings:
 - **Exposure Mode**: Auto, night, sports, etc.
 - **AWB Mode**: Auto white balance settings
 - **Focus Mode**: Auto, manual, continuous
+- **Image Orientation**: Vertical and horizontal flip options
 
 ### Timelapse Settings
 - **Interval**: Seconds between captures (default: 5)
@@ -83,7 +84,7 @@ Edit `config.yaml` to customize your camera settings:
 - **Disk Space Warning**: Free space threshold
 
 ### Slack Notifications
-- **Webhook URL**: Your Slack webhook URL
+- **Webhook URL**: Uses `SLACK_WEBHOOK_URL` environment variable
 - **Channel**: Target Slack channel (optional)
 - **Error Notifications**: Enable/disable error alerts
 - **Progress Updates**: Periodic progress reports
@@ -191,11 +192,21 @@ timelapse:
   duration: 10800  # 3 hours
 ```
 
+### Flipped Camera Setup
+```yaml
+camera:
+  vflip: true   # Flip image vertically
+  hflip: false  # Keep horizontal orientation
+  resolution:
+    width: 1920
+    height: 1080
+```
+
 ### Slack Notifications Setup
 ```yaml
 slack:
   enabled: true
-  webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+  webhook_url: "${SLACK_WEBHOOK_URL}"  # Uses environment variable
   channel: "#timelapse"
   username: "Pi Camera Bot"
   notifications:
@@ -207,6 +218,11 @@ slack:
     photo_quality: 30
     temperature_alerts: true
     disk_space_alerts: true
+```
+
+**Set the environment variable:**
+```bash
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 ```
 
 ### Path Configuration

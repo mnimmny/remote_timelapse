@@ -288,7 +288,8 @@ class PiCameraController:
         path_keys = [
             'timelapse.output_dir',
             'storage.backup_path', 
-            'system.log_file'
+            'system.log_file',
+            'slack.webhook_url'
         ]
         
         for key_path in path_keys:
@@ -410,12 +411,20 @@ class PiCameraController:
                 self.camera.set_controls(controls_dict)
             
             # Set image effects and adjustments
-            self.camera.set_controls({
+            controls_dict = {
                 "Brightness": self.config['camera']['brightness'],
                 "Contrast": self.config['camera']['contrast'],
                 "Saturation": self.config['camera']['saturation'],
                 "Sharpness": self.config['camera']['sharpness']
-            })
+            }
+            
+            # Add flip controls if enabled
+            if self.config['camera'].get('vflip', False):
+                controls_dict["VerticalFlip"] = True
+            if self.config['camera'].get('hflip', False):
+                controls_dict["HorizontalFlip"] = True
+            
+            self.camera.set_controls(controls_dict)
             
             self.camera.start()
             self.logger.info("Camera initialized successfully")
@@ -519,7 +528,7 @@ class PiCameraController:
             # Capture low-res image to memory
             import io
             image_stream = io.BytesIO()
-            self.camera.capture_file(image_stream, format='jpeg', quality=quality)
+            self.camera.capture_file(image_stream, format='jpeg')
             image_data = image_stream.getvalue()
             
             # Switch back to main config
