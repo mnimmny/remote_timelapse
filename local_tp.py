@@ -419,10 +419,12 @@ class PiCameraController:
             }
             
             # Add flip controls if enabled
-            if self.config['camera'].get('vflip', False):
-                controls_dict["VerticalFlip"] = True
-            if self.config['camera'].get('hflip', False):
-                controls_dict["HorizontalFlip"] = True
+            vflip = self.config['camera'].get('vflip', False)
+            hflip = self.config['camera'].get('hflip', False)
+            
+            if vflip or hflip:
+                controls_dict["ScalerCrop"] = (0, 0, 1, 1)  # Reset crop first
+                controls_dict["Transform"] = controls.Transform(vflip=vflip, hflip=hflip)
             
             self.camera.set_controls(controls_dict)
             
