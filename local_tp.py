@@ -55,11 +55,21 @@ class SlackNotifier:
             else:
                 try:
                     self.client = WebClient(token=self.bot_token)
-                    # Test the connection
-                    self.client.auth_test()
-                    self.logger.info("Slack client initialized successfully")
+                    # Test the connection and get workspace info
+                    auth_response = self.client.auth_test()
+                    self.logger.info(f"Slack client initialized successfully for workspace: {auth_response.get('team', 'Unknown')}")
+                    
+                    # Validate channel exists and bot has access
+                    try:
+                        channel_info = self.client.conversations_info(channel=self.channel.replace('#', ''))
+                        if not channel_info["ok"]:
+                            self.logger.warning(f"Channel {self.channel} not found or bot lacks access")
+                    except SlackApiError as e:
+                        self.logger.warning(f"Could not verify channel {self.channel}: {e.response.get('error', 'Unknown error')}")
+                        
                 except SlackApiError as e:
                     self.logger.error(f"Failed to initialize Slack client: {e}")
+                    self.logger.error(f"Auth error details: {e.response.get('error', 'Unknown error')}")
                     self.enabled = False
         
         # Thread management
@@ -215,6 +225,9 @@ class SlackNotifier:
                 
         except SlackApiError as e:
             self.logger.error(f"Slack API error sending start notification: {e}")
+            self.logger.error(f"Error details: {e.response.get('error', 'Unknown error')}")
+            if hasattr(e.response, 'headers') and 'retry-after' in e.response.headers:
+                self.logger.error(f"Rate limited. Retry after: {e.response.headers['retry-after']} seconds")
             return False
     
     def send_stop_notification(self, image_count: int, duration: float) -> bool:
