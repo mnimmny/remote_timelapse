@@ -170,43 +170,11 @@ class SlackNotifier:
                 self.logger.error(f"External upload failed with status {upload_response.status_code}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
-            # Step 3: Complete upload  
-            # Try different channel formats since bot is already in channel
-            
-            # Debug: Log what channel we're trying to use
-            channel_name = self.channel.replace('#', '')
-            self.logger.info(f"Attempting file upload to channel: '{channel_name}'")
-            
-            # Try to get the actual channel ID since bot is in channel but API says channel_not_found
-            try:
-                channel_lookup = requests.post(
-                    "https://slack.com/api/conversations.info",
-                    headers={"Authorization": f"Bearer {self.bot_token}"},
-                    data={"channel": channel_name},
-                    timeout=10
-                ).json()
-                
-                if channel_lookup.get("ok"):
-                    channel_id = channel_lookup["channel"]["id"]
-                    self.logger.info(f"Found channel ID: {channel_id}")
-                    channel_identifier = channel_id
-                else:
-                    self.logger.warning(f"Could not lookup channel: {channel_lookup.get('error', 'Unknown error')}")
-                    channel_identifier = channel_name
-                    
-            except Exception as e:
-                self.logger.warning(f"Channel lookup failed: {e}")
-                channel_identifier = channel_name
-            
+            # Step 3: Complete upload without specifying channel first
             complete_data = {
-                "file_id": file_id, 
-                "channel": channel_identifier,
-                "initial_comment": text
+                "file_id": file_id,
+                "title": filename
             }
-            
-            # Add thread timestamp if in thread
-            if in_thread and self.thread_ts:
-                complete_data["thread_ts"] = self.thread_ts
             
             complete_response = requests.post(
                 "https://slack.com/api/files.completeUploadExternal",
@@ -215,13 +183,35 @@ class SlackNotifier:
                 timeout=30
             )
             
-            complete_data = complete_response.json()
+            complete_result = complete_response.json()
             
-            if complete_data.get("ok"):
-                self.logger.info(f"Successfully uploaded image {filename}")
-                return True
+            if complete_result.get("ok"):
+                file_url = complete_result["file"]["permalink_public"]
+                
+                # Step 4: Share file to channel via chat.postMessage
+                share_text = f"{text}\n📎 [View {filename}]({file_url})"
+                
+                share_response = requests.post(
+                    "https://slack.com/api/chat.postMessage",
+                    headers={"Authorization": f"Bearer {self.bot_token}"},
+                    json={
+                        "channel": self.channel,
+                        "text": share_text,
+                        "thread_ts": self.thread_ts if in_thread else None
+                    },
+                    timeout=30
+                )
+                
+                share_result = share_response.json()
+                
+                if share_result.get("ok"):
+                    self.logger.info(f"Successfully uploaded and shared image {filename}")
+                    return True
+                else:
+                    self.logger.error(f"Failed to share file: {share_result.get('error', 'Unknown error')}")
+                    return self._upload_image_fallback(image_data, filename, text, in_thread)
             else:
-                self.logger.error(f"Complete upload failed: {complete_data.get('error', 'Unknown error')}")
+                self.logger.error(f"Complete upload failed: {complete_result.get('error', 'Unknown error')}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
                 
         except Exception as e:
