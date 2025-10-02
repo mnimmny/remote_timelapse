@@ -141,17 +141,13 @@ class SlackNotifier:
             # Use files_upload_v2 method directly
             self.logger.info(f"Uploading {filename} ({len(image_data)} bytes) using files_upload_v2")
             
+            # Try uploading without channel first, then share separately
             upload_args = {
                 "file": io.BytesIO(image_data),
                 "filename": filename,
-                "title": filename,
-                "initial_comment": text,
-                "channels": self.channel  # Explicitly specify channel
+                "title": filename
+                # Don't specify channels or thread_ts initially
             }
-            
-            # Add thread timestamp if in thread
-            if in_thread and self.thread_ts:
-                upload_args["thread_ts"] = self.thread_ts
             
             # Upload directly to channel using files_upload_v2
             self.logger.info(f"Calling files_upload_v2 with args: {list(upload_args.keys())}")
@@ -162,15 +158,30 @@ class SlackNotifier:
             
             if response["ok"]:
                 self.logger.info(f"Successfully uploaded image {filename}")
-                # Check if the file was posted to the channel
-                if "file" in response:
+                
+                # Get file link
+                file_url = response.get("permalink", "")
+                if not file_url and "file" in response:
                     file_info = response["file"]
-                    self.logger.info(f"File info: {file_info.get('name', 'No name')} - {file_info.get('url_private', 'No private URL')}")
-                    if "permalink" in response:
-                        self.logger.info(f"File permalink: {response['permalink']}")
+                    file_url = file_info.get("permalink_public", file_info.get("url_private", ""))
+                
+                self.logger.info(f"File URL: {file_url}")
+                
+                # Post separate message to channel with file link
+                share_message = f"{text}\n📎 [View {filename}]({file_url})"
+                
+                share_response = self.client.chat_postMessage(
+                    channel=self.channel,
+                    text=share_message,
+                    thread_ts=getattr(self, 'thread_ts', None) if in_thread else None
+                )
+                
+                if share_response["ok"]:
+                    self.logger.info(f"Successfully shared file link {filename}")
+                    return True
                 else:
-                    self.logger.warning("No file info in response")
-                return True
+                    self.logger.error(f"Failed to share file link: {share_response.get('error', 'Unknown error')}")
+                    return self._upload_image_fallback(image_data, filename, text, in_thread)
             else:
                 self.logger.error(f"files_upload_v2 failed: {response.get('error', 'Unknown error')}")
                 self.logger.error(f"Full response: {response}")
