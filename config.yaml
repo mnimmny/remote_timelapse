@@ -36,10 +36,10 @@ camera:
 timelapse:
   enabled: true
   interval: 5  # seconds between captures
-  duration: 3600  # total duration in seconds (1 hour)
+  duration: 15600  # total duration in seconds (1 hour)
   output_dir: "~/timelapse_images"  # Uses $HOME environment variable
   filename_prefix: "timelapse_"
-  create_video: true
+  create_video: false
   video_fps: 30
 
 # Storage settings
