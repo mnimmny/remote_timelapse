@@ -140,6 +140,8 @@ class SlackNotifier:
             import requests
             
             # Step 1: Get upload URL
+            self.logger.info(f"Step 1: Getting upload URL for {filename} ({len(image_data)} bytes)")
+            
             get_url_response = requests.post(
                 "https://slack.com/api/files.getUploadURLExternal",
                 headers={"Authorization": f"Bearer {self.bot_token}"},
@@ -151,23 +153,30 @@ class SlackNotifier:
             )
             
             get_url_data = get_url_response.json()
+            self.logger.info(f"Upload URL response: {get_url_data}")
             
             if not get_url_data.get("ok"):
                 self.logger.error(f"Failed to get upload URL: {get_url_data.get('error', 'Unknown error')}")
+                self.logger.error(f"Full response: {get_url_data}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
             upload_url = get_url_data["upload_url"]
             file_id = get_url_data["file_id"]
             
             # Step 2: Upload file to external URL
+            self.logger.info(f"Step 2: Uploading file to {upload_url}")
+            
             upload_response = requests.post(
                 upload_url,
                 files={"file": (filename, io.BytesIO(image_data), "image/jpeg")},
                 timeout=60  # Longer timeout for file upload
             )
             
+            self.logger.info(f"File upload status: {upload_response.status_code}")
+            
             if upload_response.status_code != 200:
                 self.logger.error(f"External upload failed with status {upload_response.status_code}")
+                self.logger.error(f"Upload response: {upload_response.text}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
             # Step 3: Complete upload without specifying channel first
