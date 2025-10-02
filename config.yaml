@@ -35,7 +35,7 @@ camera:
 # Timelapse settings
 timelapse:
   enabled: true
-  interval: 5  # seconds between captures
+  interval: 60  # seconds between captures
   duration: 15600  # total duration in seconds (1 hour)
   output_dir: "~/timelapse_images"  # Uses $HOME environment variable
   filename_prefix: "timelapse_"
@@ -73,11 +73,11 @@ slack:
     # Status notifications
     start_stop: true
     progress_updates: true
-    progress_interval: 10  # Send progress every N images
+    progress_interval: 5  # Send progress every N images
     
     # Photo notifications
     send_photos: true
-    photo_interval: 10  # Send low-res photo every N images
+    photo_interval: 5  # Send low-res photo every N images
     photo_quality: 30  # Low quality for faster upload
     photo_resolution:
       width: 640

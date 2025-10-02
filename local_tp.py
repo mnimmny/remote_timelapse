@@ -37,8 +37,9 @@ except ImportError as e:
 class SlackNotifier:
     """Slack SDK notification handler"""
     
-    def __init__(self, config: Dict[str, Any], logger: logging.Logger):
+    def __init__(self, config: Dict[str, Any], full_config: Dict[str, Any], logger: logging.Logger):
         self.config = config
+        self.full_config = full_config
         self.logger = logger
         self.enabled = config.get('enabled', False)
         self.bot_token = config.get('bot_token', '')
@@ -74,6 +75,12 @@ class SlackNotifier:
         
         # Thread management
         self.thread_ts = None  # Track thread timestamp for timelapse updates
+        
+        # Rate limiting for notifications
+        self.last_progress_notification = 0
+        self.last_photo_notification = 0
+        self.last_health_warning = 0
+        self.health_warning_cooldown = 300  # 5 minutes
     
     def _send_message(self, text: str, title: str = None, color: str = None, 
                      image_data: bytes = None, image_filename: str = None, 
@@ -189,9 +196,9 @@ class SlackNotifier:
             return False
         
         text = f"🎬 *Timelapse Started*\n"
-        text += f"• Interval: {self.config.get('timelapse', {}).get('interval', 'N/A')}s\n"
-        text += f"• Duration: {self.config.get('timelapse', {}).get('duration', 'N/A')}s\n"
-        text += f"• Output: {self.config.get('timelapse', {}).get('output_dir', 'N/A')}"
+        text += f"• Interval: {self.full_config.get('timelapse', {}).get('interval', 'N/A')}s\n"
+        text += f"• Duration: {self.full_config.get('timelapse', {}).get('duration', 'N/A')}s\n"
+        text += f"• Output: {self.full_config.get('timelapse', {}).get('output_dir', 'N/A')}"
         
         try:
             # Send the start message and capture the thread timestamp
@@ -376,7 +383,7 @@ class PiCameraController:
         
         # Initialize Slack notifier
         slack_config = self.config.get('slack', {})
-        self.slack = SlackNotifier(slack_config, self.logger)
+        self.slack = SlackNotifier(slack_config, self.config, self.logger)
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file"""
