@@ -161,16 +161,27 @@ class SlackNotifier:
             if response.get("ok"):
                 self.logger.info(f"Successfully uploaded image {filename}")
                 
-                # Get file link
+                # Debug: log all available URLs from response
+                file_info = response.get("file", {})
+                self.logger.info(f"Available URLs in response:")
+                for key, value in file_info.items():
+                    if "url" in key.lower() or "permalink" in key.lower():
+                        self.logger.info(f"  {key}: {value}")
+                
+                # Try different URL formats
                 file_url = response.get("permalink", "")
-                if not file_url and "file" in response:
-                    file_info = response.get("file", {})
-                    file_url = file_info.get("permalink_public", file_info.get("url_private", ""))
+                if not file_url:
+                    file_url = file_info.get("permalink_public", "")
+                if not file_url:
+                    file_url = file_info.get("url_private", "")
                 
-                self.logger.info(f"File URL: {file_url}")
+                self.logger.info(f"Selected file URL: {file_url}")
                 
-                # Post separate message to channel with file link
-                share_message = f"{text}\n📎 [View {filename}]({file_url})"
+                # Post message with file URL for unfurling
+                # Slack will automatically unfurl image URLs to show previews
+                share_message = f"{text}\n{file_url}"
+                
+                self.logger.info(f"Posting message for unfurling: {share_message}")
                 
                 share_response = self.client.chat_postMessage(
                     channel=self.channel,
