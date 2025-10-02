@@ -60,7 +60,7 @@ system:
 slack:
   enabled: true
   bot_token: "${SLACK_BOT_TOKEN}"  # Uses environment variable for bot token
-  channel: "#timelapse-notifications"  # Optional: override default channel
+  channel: "#timelapse-notifications"  # Channel for notifications
   username: "Pi Camera Bot"
   #icon_emoji: ":camera:"
   

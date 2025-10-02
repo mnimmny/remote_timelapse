@@ -170,10 +170,37 @@ class SlackNotifier:
                 self.logger.error(f"External upload failed with status {upload_response.status_code}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
-            # Step 3: Complete upload
+            # Step 3: Complete upload  
+            # Try different channel formats since bot is already in channel
+            
+            # Debug: Log what channel we're trying to use
+            channel_name = self.channel.replace('#', '')
+            self.logger.info(f"Attempting file upload to channel: '{channel_name}'")
+            
+            # Try to get the actual channel ID since bot is in channel but API says channel_not_found
+            try:
+                channel_lookup = requests.post(
+                    "https://slack.com/api/conversations.info",
+                    headers={"Authorization": f"Bearer {self.bot_token}"},
+                    data={"channel": channel_name},
+                    timeout=10
+                ).json()
+                
+                if channel_lookup.get("ok"):
+                    channel_id = channel_lookup["channel"]["id"]
+                    self.logger.info(f"Found channel ID: {channel_id}")
+                    channel_identifier = channel_id
+                else:
+                    self.logger.warning(f"Could not lookup channel: {channel_lookup.get('error', 'Unknown error')}")
+                    channel_identifier = channel_name
+                    
+            except Exception as e:
+                self.logger.warning(f"Channel lookup failed: {e}")
+                channel_identifier = channel_name
+            
             complete_data = {
-                "file_id": file_id,
-                "channel": self.channel,
+                "file_id": file_id, 
+                "channel": channel_identifier,
                 "initial_comment": text
             }
             
