@@ -179,12 +179,15 @@ class SlackNotifier:
                 self.logger.error(f"Upload response: {upload_response.text}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
-            # Step 3: Complete upload with required 'files' parameter
+            # Step 3: Complete upload with comprehensive file metadata
             complete_data = {
                 "files": [
                     {
                         "id": file_id,
-                        "title": filename
+                        "title": filename,
+                        "filename": filename,
+                        "image_url": "",  # May be required for image files
+                        "alt_txt": f"Timelapse photo {filename}"
                     }
                 ]
             }
@@ -193,8 +196,8 @@ class SlackNotifier:
             
             complete_response = requests.post(
                 "https://slack.com/api/files.completeUploadExternal",
-                headers={"Authorization": f"Bearer {self.bot_token}"},
-                data=complete_data,  # Try form data instead of JSON
+                headers={"Authorization": f"Bearer {self.bot_token}", "Content-Type": "application/json"},
+                json=complete_data,  # Use JSON format as indicated by json-pointer error
                 timeout=30
             )
             
