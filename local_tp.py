@@ -134,25 +134,38 @@ class SlackNotifier:
             return False
     
     def _upload_image(self, image_data: bytes, filename: str, text: str, in_thread: bool = False) -> bool:
-        """Upload an image to Slack"""
+        """Upload an image to Slack using the modern Files API"""
         try:
             import io
+            import base64
             
-            # Prepare upload arguments
-            upload_args = {
+            # First upload the file without posting to channel
+            upload_kwargs = {
                 "file": io.BytesIO(image_data),
                 "filename": filename,
-                "initial_comment": text,
-                "channels": self.channel
+                "title": filename,
+            }
+            
+            response = self.client.files_upload_v2(**upload_kwargs)
+            
+            if not response["ok"]:
+                return False
+                
+            # Get the file URI from the response
+            file_uri = response["file"]["permalink_public"]
+            
+            # Post a message with the file link
+            message_kwargs = {
+                "channel": self.channel,
+                "text": f"{text}\n📎 <{file_uri}|{filename}>"
             }
             
             # Add thread timestamp if replying to thread
             if in_thread and self.thread_ts:
-                upload_args["thread_ts"] = self.thread_ts
+                message_kwargs["thread_ts"] = self.thread_ts
             
-            # Upload the file
-            response = self.client.files_upload(**upload_args)
-            return response["ok"]
+            post_response = self.client.chat_postMessage(**message_kwargs)
+            return post_response["ok"]
             
         except SlackApiError as e:
             self.logger.error(f"Slack API error uploading image: {e}")
