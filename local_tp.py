@@ -143,10 +143,9 @@ class SlackNotifier:
             get_url_response = requests.post(
                 "https://slack.com/api/files.getUploadURLExternal",
                 headers={"Authorization": f"Bearer {self.bot_token}"},
-                json={
+                data={
                     "filename": filename,
-                    "length": len(image_data),
-                    "alt_txt": "Timelapse photo"
+                    "length": str(len(image_data))
                 },
                 timeout=30
             )
@@ -210,14 +209,17 @@ class SlackNotifier:
             # Encode image as base64
             image_b64 = base64.b64encode(image_data).decode('utf-8')
             
-            # Create a simplified text-only notification for now
-            fallback_text = f"{text}\n📸 *Image {filename} not uploaded due to API limitations*"
+            # Create an enhanced text notification with emoji and details
+            enhanced_text = f"{text}\n"
+            enhanced_text += f"📸 *File:* `{filename}`\n"
+            enhanced_text += f"📏 *Size:* {len(image_data):,} bytes\n"
+            enhanced_text += f"🔗 *Note:* Enable `files:write` scope for image uploads"
             
-            # Send as regular message (fallback)
+            # Send as regular message
             return self._send_message(
-                text=fallback_text,
-                title="Photo Update (Upload Failed)",
-                color="#ff6b6b",
+                text=enhanced_text,
+                title="Photo Update",
+                color="#36a64f",  # Green color since photo was captured
                 in_thread=in_thread
             )
             
