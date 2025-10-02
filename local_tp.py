@@ -137,41 +137,58 @@ class SlackNotifier:
         """Upload an image to Slack using the modern Files API"""
         try:
             import io
-            import base64
             
-            # First upload the file without posting to channel
+            # Upload file directly to channel with metadata
             upload_kwargs = {
                 "file": io.BytesIO(image_data),
                 "filename": filename,
                 "title": filename,
-            }
-            
-            response = self.client.files_upload_v2(**upload_kwargs)
-            
-            if not response["ok"]:
-                return False
-                
-            # Get the file URI from the response
-            file_uri = response["file"]["permalink_public"]
-            
-            # Post a message with the file link
-            message_kwargs = {
-                "channel": self.channel,
-                "text": f"{text}\n📎 <{file_uri}|{filename}>"
+                "channels": self.channel,
+                "initial_comment": text
             }
             
             # Add thread timestamp if replying to thread
             if in_thread and self.thread_ts:
-                message_kwargs["thread_ts"] = self.thread_ts
+                upload_kwargs["thread_ts"] = self.thread_ts
             
-            post_response = self.client.chat_postMessage(**message_kwargs)
-            return post_response["ok"]
+            response = self.client.files_upload_v2(**upload_kwargs)
+            
+            if response["ok"]:
+                self.logger.info(f"Successfully uploaded image {filename}")
+                return True
+            else:
+                self.logger.error(f"File upload failed: {response.get('error', 'Unknown error')}")
+                return False
             
         except SlackApiError as e:
             self.logger.error(f"Slack API error uploading image: {e}")
-            return False
+            # Try fallback method with base64 encoding
+            return self._upload_image_fallback(image_data, filename, text, in_thread)
         except Exception as e:
             self.logger.error(f"Failed to upload image: {e}")
+            return False
+    
+    def _upload_image_fallback(self, image_data: bytes, filename: str, text: str, in_thread: bool = False) -> bool:
+        """Fallback: Upload image as base64 data URL"""
+        try:
+            import base64
+            
+            # Encode image as base64
+            image_b64 = base64.b64encode(image_data).decode('utf-8')
+            
+            # Create a simplified text-only notification for now
+            fallback_text = f"{text}\n📸 *Image {filename} not uploaded due to API limitations*"
+            
+            # Send as regular message (fallback)
+            return self._send_message(
+                text=fallback_text,
+                title="Photo Update (Upload Failed)",
+                color="#ff6b6b",
+                in_thread=in_thread
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Fallback image notification failed: {e}")
             return False
     
     def send_error(self, message: str, error: Exception = None) -> bool:
