@@ -179,17 +179,10 @@ class SlackNotifier:
                 self.logger.error(f"Upload response: {upload_response.text}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
-            # Step 3: Complete upload with comprehensive file metadata
+            # Step 3: Try top-level file properties instead of files array
             complete_data = {
-                "files": [
-                    {
-                        "id": file_id,
-                        "title": filename,
-                        "filename": filename,
-                        "image_url": "",  # May be required for image files
-                        "alt_txt": f"Timelapse photo {filename}"
-                    }
-                ]
+                "file_id": file_id,
+                "title": filename
             }
             
             self.logger.info(f"Step 3: Completing upload with data: {complete_data}")
