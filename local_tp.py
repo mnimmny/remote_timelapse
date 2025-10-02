@@ -145,7 +145,8 @@ class SlackNotifier:
                 "file": io.BytesIO(image_data),
                 "filename": filename,
                 "title": filename,
-                "initial_comment": text
+                "initial_comment": text,
+                "channels": self.channel  # Explicitly specify channel
             }
             
             # Add thread timestamp if in thread
@@ -153,13 +154,26 @@ class SlackNotifier:
                 upload_args["thread_ts"] = self.thread_ts
             
             # Upload directly to channel using files_upload_v2
+            self.logger.info(f"Calling files_upload_v2 with args: {list(upload_args.keys())}")
+            
             response = self.client.files_upload_v2(**upload_args)
+            
+            self.logger.info(f"files_upload_v2 response keys: {list(response.keys()) if 'ok' in response else 'Failed to parse response'}")
             
             if response["ok"]:
                 self.logger.info(f"Successfully uploaded image {filename}")
+                # Check if the file was posted to the channel
+                if "file" in response:
+                    file_info = response["file"]
+                    self.logger.info(f"File info: {file_info.get('name', 'No name')} - {file_info.get('url_private', 'No private URL')}")
+                    if "permalink" in response:
+                        self.logger.info(f"File permalink: {response['permalink']}")
+                else:
+                    self.logger.warning("No file info in response")
                 return True
             else:
                 self.logger.error(f"files_upload_v2 failed: {response.get('error', 'Unknown error')}")
+                self.logger.error(f"Full response: {response}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
                 
         except SlackApiError as e:
