@@ -134,98 +134,37 @@ class SlackNotifier:
             return False
     
     def _upload_image(self, image_data: bytes, filename: str, text: str, in_thread: bool = False) -> bool:
-        """Upload an image to Slack using the modern external upload API"""
+        """Upload an image to Slack using files_upload_v2"""
         try:
             import io
-            import requests
             
-            # Step 1: Get upload URL
-            self.logger.info(f"Step 1: Getting upload URL for {filename} ({len(image_data)} bytes)")
+            # Use files_upload_v2 method directly
+            self.logger.info(f"Uploading {filename} ({len(image_data)} bytes) using files_upload_v2")
             
-            get_url_response = requests.post(
-                "https://slack.com/api/files.getUploadURLExternal",
-                headers={"Authorization": f"Bearer {self.bot_token}"},
-                data={
-                    "filename": filename,
-                    "length": str(len(image_data))
-                },
-                timeout=30
-            )
-            
-            get_url_data = get_url_response.json()
-            self.logger.info(f"Upload URL response: {get_url_data}")
-            
-            if not get_url_data.get("ok"):
-                self.logger.error(f"Failed to get upload URL: {get_url_data.get('error', 'Unknown error')}")
-                self.logger.error(f"Full response: {get_url_data}")
-                return self._upload_image_fallback(image_data, filename, text, in_thread)
-            
-            upload_url = get_url_data["upload_url"]
-            file_id = get_url_data["file_id"]
-            
-            # Step 2: Upload file to external URL
-            self.logger.info(f"Step 2: Uploading file to {upload_url}")
-            
-            upload_response = requests.post(
-                upload_url,
-                files={"file": (filename, io.BytesIO(image_data), "image/jpeg")},
-                timeout=60  # Longer timeout for file upload
-            )
-            
-            self.logger.info(f"File upload status: {upload_response.status_code}")
-            
-            if upload_response.status_code != 200:
-                self.logger.error(f"External upload failed with status {upload_response.status_code}")
-                self.logger.error(f"Upload response: {upload_response.text}")
-                return self._upload_image_fallback(image_data, filename, text, in_thread)
-            
-            # Step 3: Try top-level file properties instead of files array
-            complete_data = {
-                "file_id": file_id,
-                "title": filename
+            upload_args = {
+                "file": io.BytesIO(image_data),
+                "filename": filename,
+                "title": filename,
+                "initial_comment": text
             }
             
-            self.logger.info(f"Step 3: Completing upload with data: {complete_data}")
+            # Add thread timestamp if in thread
+            if in_thread and self.thread_ts:
+                upload_args["thread_ts"] = self.thread_ts
             
-            complete_response = requests.post(
-                "https://slack.com/api/files.completeUploadExternal",
-                headers={"Authorization": f"Bearer {self.bot_token}", "Content-Type": "application/json"},
-                json=complete_data,  # Use JSON format as indicated by json-pointer error
-                timeout=30
-            )
+            # Upload directly to channel using files_upload_v2
+            response = self.client.files_upload_v2(**upload_args)
             
-            complete_result = complete_response.json()
-            self.logger.info(f"Complete upload response: {complete_result}")
-            
-            if complete_result.get("ok"):
-                file_url = complete_result["file"]["permalink_public"]
-                
-                # Step 4: Share file to channel via chat.postMessage
-                share_text = f"{text}\n📎 [View {filename}]({file_url})"
-                
-                share_response = requests.post(
-                    "https://slack.com/api/chat.postMessage",
-                    headers={"Authorization": f"Bearer {self.bot_token}"},
-                    json={
-                        "channel": self.channel,
-                        "text": share_text,
-                        "thread_ts": self.thread_ts if in_thread else None
-                    },
-                    timeout=30
-                )
-                
-                share_result = share_response.json()
-                
-                if share_result.get("ok"):
-                    self.logger.info(f"Successfully uploaded and shared image {filename}")
-                    return True
-                else:
-                    self.logger.error(f"Failed to share file: {share_result.get('error', 'Unknown error')}")
-                    return self._upload_image_fallback(image_data, filename, text, in_thread)
+            if response["ok"]:
+                self.logger.info(f"Successfully uploaded image {filename}")
+                return True
             else:
-                self.logger.error(f"Complete upload failed: {complete_result.get('error', 'Unknown error')}")
+                self.logger.error(f"files_upload_v2 failed: {response.get('error', 'Unknown error')}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
                 
+        except SlackApiError as e:
+            self.logger.error(f"Slack API error uploading image: {e}")
+            return self._upload_image_fallback(image_data, filename, text, in_thread)
         except Exception as e:
             self.logger.error(f"Failed to upload image: {e}")
             return self._upload_image_fallback(image_data, filename, text, in_thread)
