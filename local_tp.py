@@ -134,39 +134,73 @@ class SlackNotifier:
             return False
     
     def _upload_image(self, image_data: bytes, filename: str, text: str, in_thread: bool = False) -> bool:
-        """Upload an image to Slack using the modern Files API"""
+        """Upload an image to Slack using the modern external upload API"""
         try:
             import io
+            import requests
             
-            # Upload file directly to channel with metadata
-            upload_kwargs = {
-                "file": io.BytesIO(image_data),
-                "filename": filename,
-                "title": filename,
-                "channels": self.channel,
+            # Step 1: Get upload URL
+            get_url_response = requests.post(
+                "https://slack.com/api/files.getUploadURLExternal",
+                headers={"Authorization": f"Bearer {self.bot_token}"},
+                json={
+                    "filename": filename,
+                    "length": len(image_data),
+                    "alt_txt": "Timelapse photo"
+                },
+                timeout=30
+            )
+            
+            get_url_data = get_url_response.json()
+            
+            if not get_url_data.get("ok"):
+                self.logger.error(f"Failed to get upload URL: {get_url_data.get('error', 'Unknown error')}")
+                return self._upload_image_fallback(image_data, filename, text, in_thread)
+            
+            upload_url = get_url_data["upload_url"]
+            file_id = get_url_data["file_id"]
+            
+            # Step 2: Upload file to external URL
+            upload_response = requests.post(
+                upload_url,
+                files={"file": (filename, io.BytesIO(image_data), "image/jpeg")},
+                timeout=60  # Longer timeout for file upload
+            )
+            
+            if upload_response.status_code != 200:
+                self.logger.error(f"External upload failed with status {upload_response.status_code}")
+                return self._upload_image_fallback(image_data, filename, text, in_thread)
+            
+            # Step 3: Complete upload
+            complete_data = {
+                "file_id": file_id,
+                "channel": self.channel,
                 "initial_comment": text
             }
             
-            # Add thread timestamp if replying to thread
+            # Add thread timestamp if in thread
             if in_thread and self.thread_ts:
-                upload_kwargs["thread_ts"] = self.thread_ts
+                complete_data["thread_ts"] = self.thread_ts
             
-            response = self.client.files_upload_v2(**upload_kwargs)
+            complete_response = requests.post(
+                "https://slack.com/api/files.completeUploadExternal",
+                headers={"Authorization": f"Bearer {self.bot_token}"},
+                json=complete_data,
+                timeout=30
+            )
             
-            if response["ok"]:
+            complete_data = complete_response.json()
+            
+            if complete_data.get("ok"):
                 self.logger.info(f"Successfully uploaded image {filename}")
                 return True
             else:
-                self.logger.error(f"File upload failed: {response.get('error', 'Unknown error')}")
-                return False
-            
-        except SlackApiError as e:
-            self.logger.error(f"Slack API error uploading image: {e}")
-            # Try fallback method with base64 encoding
-            return self._upload_image_fallback(image_data, filename, text, in_thread)
+                self.logger.error(f"Complete upload failed: {complete_data.get('error', 'Unknown error')}")
+                return self._upload_image_fallback(image_data, filename, text, in_thread)
+                
         except Exception as e:
             self.logger.error(f"Failed to upload image: {e}")
-            return False
+            return self._upload_image_fallback(image_data, filename, text, in_thread)
     
     def _upload_image_fallback(self, image_data: bytes, filename: str, text: str, in_thread: bool = False) -> bool:
         """Fallback: Upload image as base64 data URL"""
