@@ -26,28 +26,41 @@ except ImportError:
 
 try:
     import requests
-except ImportError:
-    print("Error: requests module not found. Please install it with:")
-    print("pip3 install requests")
+    from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
+except ImportError as e:
+    print("Error: Required modules not found. Please install with:")
+    print("pip3 install requests slack-sdk")
     sys.exit(1)
 
 
 class SlackNotifier:
-    """Slack webhook notification handler"""
+    """Slack SDK notification handler"""
     
     def __init__(self, config: Dict[str, Any], logger: logging.Logger):
         self.config = config
         self.logger = logger
         self.enabled = config.get('enabled', False)
-        self.webhook_url = config.get('webhook_url', '')
-        self.channel = config.get('channel', '')
+        self.bot_token = config.get('bot_token', '')
+        self.channel = config.get('channel', '#general')
         self.username = config.get('username', 'Pi Camera Bot')
         self.icon_emoji = config.get('icon_emoji', ':camera:')
         self.notifications = config.get('notifications', {})
         
-        if self.enabled and not self.webhook_url:
-            self.logger.warning("Slack notifications enabled but no webhook URL provided")
-            self.enabled = False
+        # Initialize Slack client
+        if self.enabled:
+            if not self.bot_token:
+                self.logger.warning("Slack notifications enabled but no bot token provided")
+                self.enabled = False
+            else:
+                try:
+                    self.client = WebClient(token=self.bot_token)
+                    # Test the connection
+                    self.client.auth_test()
+                    self.logger.info("Slack client initialized successfully")
+                except SlackApiError as e:
+                    self.logger.error(f"Failed to initialize Slack client: {e}")
+                    self.enabled = False
         
         # Thread management
         self.thread_ts = None  # Track thread timestamp for timelapse updates
@@ -55,25 +68,24 @@ class SlackNotifier:
     def _send_message(self, text: str, title: str = None, color: str = None, 
                      image_data: bytes = None, image_filename: str = None, 
                      in_thread: bool = False) -> bool:
-        """Send a message to Slack via webhook"""
+        """Send a message to Slack via SDK"""
         if not self.enabled:
             return False
         
         try:
-            payload = {
+            # Prepare message payload
+            message_kwargs = {
+                "channel": self.channel,
+                "text": text,
                 "username": self.username,
-                "icon_emoji": self.icon_emoji,
-                "text": text
+                "icon_emoji": self.icon_emoji
             }
-            
-            if self.channel:
-                payload["channel"] = self.channel
             
             # Add thread timestamp if replying to thread
             if in_thread and self.thread_ts:
-                payload["thread_ts"] = self.thread_ts
+                message_kwargs["thread_ts"] = self.thread_ts
             
-            # Add attachment for rich formatting (without duplicating text)
+            # Add attachments for rich formatting
             if title or color:
                 attachment = {
                     "fallback": text,
@@ -87,51 +99,49 @@ class SlackNotifier:
                     ],
                     "ts": int(time.time())
                 }
-                payload["attachments"] = [attachment]
+                message_kwargs["attachments"] = [attachment]
             
-            # Send image if provided
+            # Handle image uploads
             if image_data and image_filename:
-                # For images, we need to use files.upload API instead of webhook
-                # This is a simplified approach - in production you might want to use the Slack SDK
-                files = {
-                    'file': (image_filename, image_data, 'image/jpeg')
-                }
-                data = {
-                    'channels': self.channel or '',
-                    'initial_comment': text,
-                    'username': self.username
-                }
-                
-                # Note: This requires a bot token, not a webhook URL
-                # For webhook-only approach, we'll skip image upload for now
-                self.logger.warning("Image upload requires bot token, skipping image")
-                return self._send_webhook(payload)
+                return self._upload_image(image_data, image_filename, text, in_thread)
             else:
-                return self._send_webhook(payload)
+                # Send text message
+                response = self.client.chat_postMessage(**message_kwargs)
+                return response["ok"]
                 
+        except SlackApiError as e:
+            self.logger.error(f"Slack API error: {e}")
+            return False
         except Exception as e:
             self.logger.error(f"Failed to send Slack message: {e}")
             return False
     
-    def _send_webhook(self, payload: Dict[str, Any]) -> bool:
-        """Send webhook payload to Slack"""
+    def _upload_image(self, image_data: bytes, filename: str, text: str, in_thread: bool = False) -> bool:
+        """Upload an image to Slack"""
         try:
-            response = requests.post(
-                self.webhook_url,
-                json=payload,
-                timeout=10
-            )
-            response.raise_for_status()
+            import io
             
-            # Capture thread timestamp from first message (start notification)
-            if "thread_ts" not in payload and self.thread_ts is None:
-                # Extract thread timestamp from response if available
-                # Note: Webhook responses don't include thread_ts, so we'll use a different approach
-                pass
+            # Prepare upload arguments
+            upload_args = {
+                "file": io.BytesIO(image_data),
+                "filename": filename,
+                "initial_comment": text,
+                "channels": self.channel
+            }
             
-            return True
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Slack webhook request failed: {e}")
+            # Add thread timestamp if replying to thread
+            if in_thread and self.thread_ts:
+                upload_args["thread_ts"] = self.thread_ts
+            
+            # Upload the file
+            response = self.client.files_upload(**upload_args)
+            return response["ok"]
+            
+        except SlackApiError as e:
+            self.logger.error(f"Slack API error uploading image: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Failed to upload image: {e}")
             return False
     
     def send_error(self, message: str, error: Exception = None) -> bool:
@@ -173,16 +183,39 @@ class SlackNotifier:
         text += f"• Duration: {self.config.get('timelapse', {}).get('duration', 'N/A')}s\n"
         text += f"• Output: {self.config.get('timelapse', {}).get('output_dir', 'N/A')}"
         
-        # Generate a unique thread timestamp (since webhooks don't return it)
-        import time
-        self.thread_ts = str(time.time())
-        
-        return self._send_message(
-            text=text,
-            title="Timelapse Started",
-            color="good",
-            in_thread=False  # This creates the thread
-        )
+        try:
+            # Send the start message and capture the thread timestamp
+            response = self.client.chat_postMessage(
+                channel=self.channel,
+                text=text,
+                attachments=[
+                    {
+                        "fallback": text,
+                        "color": "good",
+                        "fields": [
+                            {
+                                "title": "Timelapse Started",
+                                "value": "",
+                                "short": False
+                            }
+                        ],
+                        "ts": int(time.time())
+                    }
+                ]
+            )
+            
+            if response["ok"]:
+                # Capture the thread timestamp from the response
+                self.thread_ts = response["ts"]
+                self.logger.info("Timelapse started notification sent")
+                return True
+            else:
+                self.logger.error(f"Failed to send start notification: {response.get('error', 'Unknown error')}")
+                return False
+                
+        except SlackApiError as e:
+            self.logger.error(f"Slack API error sending start notification: {e}")
+            return False
     
     def send_stop_notification(self, image_count: int, duration: float) -> bool:
         """Send timelapse stop notification (in thread)"""
@@ -355,7 +388,7 @@ class PiCameraController:
             'timelapse.output_dir',
             'storage.backup_path', 
             'system.log_file',
-            'slack.webhook_url'
+            'slack.bot_token'
         ]
         
         for key_path in path_keys:

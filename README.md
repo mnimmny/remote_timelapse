@@ -41,12 +41,13 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
    pip3 install -r requirements.txt
    ```
 
-3. **Setup Slack webhook (optional):**
+3. **Setup Slack bot (optional):**
    - Go to your Slack workspace
    - Create a new app or use an existing one
-   - Add "Incoming Webhooks" feature
-   - Create a webhook URL
-   - Set the environment variable: `export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"`
+   - In *OAuth & Permissions* under *Features* and *Scopes* Add these OAuth scopes: `chat:write`, `files:write`
+   - Install the app to your workspace
+   - Copy the Bot User OAuth Token (starts with `xoxb-`)
+   - Set the environment variable: `export SLACK_BOT_TOKEN="xoxb-your-bot-token"`
 
 4. **Enable camera interface:**
    ```bash
@@ -84,11 +85,12 @@ Edit `config.yaml` to customize your camera settings:
 - **Disk Space Warning**: Free space threshold
 
 ### Slack Notifications
-- **Webhook URL**: Uses `SLACK_WEBHOOK_URL` environment variable
+- **Bot Token**: Uses `SLACK_BOT_TOKEN` environment variable
 - **Channel**: Target Slack channel (optional)
 - **Error Notifications**: Enable/disable error alerts
-- **Progress Updates**: Periodic progress reports
-- **Photo Updates**: Low-resolution photos sent to Slack
+- **Progress Updates**: Periodic progress reports with progress bars
+- **Photo Updates**: Low-resolution photos uploaded to Slack
+- **Threading**: Start notification creates thread, updates reply in thread
 - **System Alerts**: Temperature and disk space warnings
 
 ## Usage
@@ -206,7 +208,7 @@ camera:
 ```yaml
 slack:
   enabled: true
-  webhook_url: "${SLACK_WEBHOOK_URL}"  # Uses environment variable
+  bot_token: "${SLACK_BOT_TOKEN}"  # Uses environment variable
   channel: "#timelapse"
   username: "Pi Camera Bot"
   notifications:
@@ -222,8 +224,12 @@ slack:
 
 **Set the environment variable:**
 ```bash
-export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+export SLACK_BOT_TOKEN="xoxb-your-bot-token"
 ```
+
+**Slack App Permissions Required:**
+- `chat:write` - Send messages
+- `files:write` - Upload photos
 
 ### Path Configuration
 The script supports flexible path configuration using environment variables and home directory expansion:
