@@ -154,15 +154,17 @@ class SlackNotifier:
             
             response = self.client.files_upload_v2(**upload_args)
             
-            self.logger.info(f"files_upload_v2 response keys: {list(response.keys()) if 'ok' in response else 'Failed to parse response'}")
+            # Handle SlackResponse object properly
+            self.logger.info(f"files_upload_v2 response type: {type(response)}")
+            self.logger.info(f"Response ok: {response.get('ok', 'No ok field')}")
             
-            if response["ok"]:
+            if response.get("ok"):
                 self.logger.info(f"Successfully uploaded image {filename}")
                 
                 # Get file link
                 file_url = response.get("permalink", "")
                 if not file_url and "file" in response:
-                    file_info = response["file"]
+                    file_info = response.get("file", {})
                     file_url = file_info.get("permalink_public", file_info.get("url_private", ""))
                 
                 self.logger.info(f"File URL: {file_url}")
