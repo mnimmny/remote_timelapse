@@ -179,11 +179,14 @@ class SlackNotifier:
                 self.logger.error(f"Upload response: {upload_response.text}")
                 return self._upload_image_fallback(image_data, filename, text, in_thread)
             
-            # Step 3: Complete upload without specifying channel first
+            # Step 3: Complete upload with required 'files' parameter
             complete_data = {
-                "file_id": file_id,
-                "title": filename,
-                "filename": filename
+                "files": [
+                    {
+                        "id": file_id,
+                        "title": filename
+                    }
+                ]
             }
             
             self.logger.info(f"Step 3: Completing upload with data: {complete_data}")
