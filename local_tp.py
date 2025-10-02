@@ -182,17 +182,21 @@ class SlackNotifier:
             # Step 3: Complete upload without specifying channel first
             complete_data = {
                 "file_id": file_id,
-                "title": filename
+                "title": filename,
+                "filename": filename
             }
+            
+            self.logger.info(f"Step 3: Completing upload with data: {complete_data}")
             
             complete_response = requests.post(
                 "https://slack.com/api/files.completeUploadExternal",
                 headers={"Authorization": f"Bearer {self.bot_token}"},
-                json=complete_data,
+                data=complete_data,  # Try form data instead of JSON
                 timeout=30
             )
             
             complete_result = complete_response.json()
+            self.logger.info(f"Complete upload response: {complete_result}")
             
             if complete_result.get("ok"):
                 file_url = complete_result["file"]["permalink_public"]
