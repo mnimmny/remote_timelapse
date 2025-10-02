@@ -141,13 +141,20 @@ class SlackNotifier:
             # Use files_upload_v2 method directly
             self.logger.info(f"Uploading {filename} ({len(image_data)} bytes) using files_upload_v2")
             
-            # Try uploading without channel first, then share separately
+            # Try uploading directly to channel using channel name format
+            channel_name = self.channel.replace('#', '')  # Remove # prefix
+            
             upload_args = {
                 "file": io.BytesIO(image_data),
                 "filename": filename,
-                "title": filename
-                # Don't specify channels or thread_ts initially
+                "title": filename,
+                "channels": [channel_name],  # Try as list format
+                "initial_comment": text
             }
+            
+            # Add thread timestamp if in thread
+            if in_thread and self.thread_ts:
+                upload_args["thread_ts"] = self.thread_ts
             
             # Upload directly to channel using files_upload_v2
             self.logger.info(f"Calling files_upload_v2 with args: {list(upload_args.keys())}")
@@ -159,42 +166,8 @@ class SlackNotifier:
             self.logger.info(f"Response ok: {response.get('ok', 'No ok field')}")
             
             if response.get("ok"):
-                self.logger.info(f"Successfully uploaded image {filename}")
-                
-                # Debug: log all available URLs from response
-                file_info = response.get("file", {})
-                self.logger.info(f"Available URLs in response:")
-                for key, value in file_info.items():
-                    if "url" in key.lower() or "permalink" in key.lower():
-                        self.logger.info(f"  {key}: {value}")
-                
-                # Try different URL formats
-                file_url = response.get("permalink", "")
-                if not file_url:
-                    file_url = file_info.get("permalink_public", "")
-                if not file_url:
-                    file_url = file_info.get("url_private", "")
-                
-                self.logger.info(f"Selected file URL: {file_url}")
-                
-                # Post message with file URL for unfurling
-                # Slack will automatically unfurl image URLs to show previews
-                share_message = f"{text}\n{file_url}"
-                
-                self.logger.info(f"Posting message for unfurling: {share_message}")
-                
-                share_response = self.client.chat_postMessage(
-                    channel=self.channel,
-                    text=share_message,
-                    thread_ts=getattr(self, 'thread_ts', None) if in_thread else None
-                )
-                
-                if share_response["ok"]:
-                    self.logger.info(f"Successfully shared file link {filename}")
-                    return True
-                else:
-                    self.logger.error(f"Failed to share file link: {share_response.get('error', 'Unknown error')}")
-                    return self._upload_image_fallback(image_data, filename, text, in_thread)
+                self.logger.info(f"Successfully uploaded image {filename} to channel")
+                return True
             else:
                 self.logger.error(f"files_upload_v2 failed: {response.get('error', 'Unknown error')}")
                 self.logger.error(f"Full response: {response}")
