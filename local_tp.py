@@ -62,9 +62,12 @@ class SlackNotifier:
                     
                     # Validate channel exists and bot has access
                     try:
-                        channel_info = self.client.conversations_info(channel=self.channel.replace('#', ''))
+                        channel_id = self._convert_channel_name_to_id(self.channel)
+                        channel_info = self.client.conversations_info(channel=channel_id)
                         if not channel_info["ok"]:
-                            self.logger.warning(f"Channel {self.channel} not found or bot lacks access")
+                            self.logger.warning(f"Channel {self.channel} (ID: {channel_id}) not accessible")
+                        else:
+                            self.logger.info(f"Successfully verified access to channel {self.channel} (ID: {channel_id})")
                     except SlackApiError as e:
                         self.logger.warning(f"Could not verify channel {self.channel}: {e.response.get('error', 'Unknown error')}")
                         
@@ -81,6 +84,34 @@ class SlackNotifier:
         self.last_photo_notification = 0
         self.last_health_warning = 0
         self.health_warning_cooldown = 300  # 5 minutes
+    
+    def _convert_channel_name_to_id(self, channel_name: str) -> str:
+        """Convert channel name to channel ID"""
+        if not self.enabled:
+            return channel_name
+            
+        try:
+            # Remove # prefix if present
+            clean_name = channel_name.replace('#', '')
+            
+            # Get channel ID
+            conversations_response = self.client.conversations_list()
+            if conversations_response.get("ok"):
+                for channel in conversations_response["channels"]:
+                    if channel.get("name") == clean_name:
+                        channel_id = channel.get("id")
+                        self.logger.debug(f"Converted #{clean_name} to ID {channel_id}")
+                        return channel_id
+                
+                self.logger.warning(f"Channel #{clean_name} not found in workspace")
+                return channel_name
+            else:
+                self.logger.warning("Failed to get channels list")
+                return channel_name
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to convert channel name to ID: {e}")
+            return channel_name
     
     def _send_message(self, text: str, title: str = None, color: str = None, 
                      image_data: bytes = None, image_filename: str = None, 
@@ -142,30 +173,9 @@ class SlackNotifier:
             self.logger.info(f"Uploading {filename} ({len(image_data)} bytes) using files_upload_v2")
             
             # Convert channel name to channel ID
-            channel_name = self.channel.replace('#', '')  # Remove # prefix
-            
-            # Get channel ID
-            try:
-                channel_response = self.client.conversations_list()
-                if channel_response.get("ok"):
-                    channel_id = None
-                    for channel in channel_response["channels"]:
-                        if channel.get("name") == channel_name:
-                            channel_id = channel.get("id")
-                            break
-                    
-                    if channel_id:
-                        self.logger.info(f"Found channel ID {channel_id} for #{channel_name}")
-                    else:
-                        self.logger.warning(f"Could not find channel #{channel_name}, using name")
-                        channel_id = channel_name
-                else:
-                    self.logger.warning("Failed to get channels list")
-                    channel_id = channel_name
-                    
-            except Exception as e:
-                self.logger.warning(f"Failed to get channel ID: {e}")
-                channel_id = channel_name
+            channel_id = self._convert_channel_name_to_id(self.channel)
+            if channel_id != self.channel:  # Successfully got ID
+                self.logger.info(f"Using channel ID {channel_id} for upload to {self.channel}")
             
             upload_args = {
                 "file": io.BytesIO(image_data),

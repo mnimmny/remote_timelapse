@@ -44,7 +44,10 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
 3. **Setup Slack bot (optional):**
    - Go to your Slack workspace
    - Create a new app or use an existing one
-   - In *OAuth & Permissions* under *Features* and *Scopes* Add these OAuth scopes: `chat:write`, `files:write`
+   - In *OAuth & Permissions* under *Bot Token Scopes*, add these OAuth scopes:
+     - `chat:write` (for sending messages)
+     - `files:write` (for uploading files)
+     - `channels:read` (for channel ID resolution in file uploads)
    - Install the app to your workspace
    - Copy the Bot User OAuth Token (starts with `xoxb-`)
    - Set the environment variable: `export SLACK_BOT_TOKEN="xoxb-your-bot-token"`
