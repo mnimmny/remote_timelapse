@@ -34,6 +34,7 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
    sudo apt update
    sudo apt install -y python3-picamera2 python3-pip
    sudo apt install -y ffmpeg  # Optional, for video creation
+   sudo apt install -y screen  # For persistent sessions
    ```
 
 2. **Install Python dependencies:**
@@ -132,6 +133,43 @@ timelapse/
 - **Logs**: Written to `/home/pi/camera.log` and console
 - **Video**: Optional MP4 video created from captured images
 - **Slack Notifications**: Real-time updates sent to your Slack channel
+
+## Running the Script
+
+### Recommended: Run with Screen
+For long-running timelapses, use `screen` to survive SSH disconnections:
+
+```bash
+# Start timelapse session
+screen -S timelapse python3 local_tp.py
+
+# Detach from session (Ctrl+A then D)
+# Or just close your SSH terminal
+
+# Later, reconnect to your session
+screen -r timelapse
+
+# View all sessions
+screen -ls
+
+# Terminate session (when attached): Ctrl+C
+# Or kill session entirely:
+screen -S timelapse -X quit
+```
+
+### Alternative: Background Process
+```bash
+# Run in background (less interactive)
+nohup python3 local_tp.py > timelapse.log 2>&1 &
+
+# Check if running
+ps aux | grep local_tp.py
+
+# Stop the process
+pkill -f local_tp.py
+```
+
+> **Note**: SSH connections can drop due to network issues. Screen sessions persist through disconnections, so you can reconnect and monitor your timelapse anytime.
 
 ## Troubleshooting
 
