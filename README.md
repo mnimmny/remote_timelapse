@@ -109,14 +109,6 @@ python3 local_tp.py
 nohup python3 local_tp.py > output.log 2>&1 &
 ```
 
-### Stop Background Process
-```bash
-# Find the process ID
-ps aux | grep local_tp.py
-# Kill the process
-kill <PID>
-```
-
 ## File Structure
 
 ```
@@ -262,15 +254,6 @@ slack:
     temperature_alerts: true
     disk_space_alerts: true
 ```
-
-**Set the environment variable:**
-```bash
-export SLACK_BOT_TOKEN="xoxb-your-bot-token"
-```
-
-**Slack App Permissions Required:**
-- `chat:write` - Send messages
-- `files:write` - Upload photos
 
 ### Path Configuration
 The script supports flexible path configuration using environment variables and home directory expansion:
