@@ -11,14 +11,17 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
 - **Video Creation**: Optional video creation from captured images
 - **Slack Notifications**: Real-time notifications with webhook integration
 - **Low-res Photo Updates**: Periodic low-resolution photos sent to Slack
+- **Slack Bot Control**: Interactive Slack commands to control camera remotely
 - **System Monitoring**: Temperature and disk space alerts
 - **Robust Error Handling**: Comprehensive logging and error recovery
 - **Pi Zero W Optimized**: Settings optimized for Pi Zero W performance
 
-### TO DOs/Potential Feature roadmap?
-- **Slack command control**: 1. start/stop/restart timelapses 2. request low-res photo (slash commands or app buttons)
-- **Camera auto adjustment for environment**: 
-- **Separate LED contol**
+### Slack Bot Commands
+- `@bot photo` - Take a single photo
+- `@bot status` - Show camera and system status
+- `@bot start 30s 10m` - Start timelapse (interval duration)
+- `@bot stop` - Stop current timelapse
+- `@bot help` - Show available commands
 
 ## Requirements
 
@@ -49,6 +52,12 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
      - `chat:write` (for sending messages)
      - `files:write` (for uploading files)
      - `channels:read` (for channel ID resolution in file uploads)
+     - `app_mentions:read` (for bot command processing)
+     - `channels:history` (for polling mode fallback)
+   - For Socket Mode (recommended), also add:
+     - Go to *Socket Mode* and enable it
+     - Copy the App-Level Token (starts with `xapp-`)
+     - Set: `export SLACK_APP_TOKEN="xapp-your-app-token"`
    - Install the app to your workspace
    - Copy the Bot User OAuth Token (starts with `xoxb-`)
    - Set the environment variable: `export SLACK_BOT_TOKEN="xoxb-your-bot-token"`
@@ -128,8 +137,8 @@ timelapse/
 
 ## Running the Script
 
-### Recommended: Run with Screen
-For long-running timelapses, use `screen` to survive SSH disconnections:
+### Timelapse Mode
+For automated timelapse capture:
 
 ```bash
 # Start timelapse session
@@ -148,6 +157,26 @@ screen -ls
 # Or kill session entirely:
 screen -S timelapse -X quit
 ```
+
+### Slack Bot Mode
+For interactive Slack control:
+
+```bash
+# Set required environment variables
+export SLACK_BOT_TOKEN="xoxb-your-bot-token"
+export SLACK_APP_TOKEN="xapp-your-app-token"  # Optional, for Socket Mode
+
+# Start bot in background
+screen -S timelapse-bot python3 timelapse_bot.py
+
+# Or run in foreground for testing
+python3 timelapse_bot.py
+```
+
+**Bot Features:**
+- Real-time Slack commands via Socket Mode (recommended)
+- Fallback polling mode if Socket Mode unavailable
+- Commands: `@bot photo`, `@bot status`, `@bot start 30s 10m`, `@bot stop`, `@bot help`
 
 ### Alternative: Background Process
 ```bash
