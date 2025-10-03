@@ -76,7 +76,7 @@ slack:
     progress_interval: 5  # Send progress every N images
     
     # Photo notifications
-    send_photos: true
+    send_photos: true  # Re-enabled with channel ID fix
     photo_interval: 5  # Send low-res photo every N images
     photo_quality: 30  # Low quality for faster upload
     photo_resolution:

@@ -141,14 +141,37 @@ class SlackNotifier:
             # Use files_upload_v2 method directly
             self.logger.info(f"Uploading {filename} ({len(image_data)} bytes) using files_upload_v2")
             
-            # Try uploading directly to channel using channel name format
+            # Convert channel name to channel ID
             channel_name = self.channel.replace('#', '')  # Remove # prefix
+            
+            # Get channel ID
+            try:
+                channel_response = self.client.conversations_list()
+                if channel_response.get("ok"):
+                    channel_id = None
+                    for channel in channel_response["channels"]:
+                        if channel.get("name") == channel_name:
+                            channel_id = channel.get("id")
+                            break
+                    
+                    if channel_id:
+                        self.logger.info(f"Found channel ID {channel_id} for #{channel_name}")
+                    else:
+                        self.logger.warning(f"Could not find channel #{channel_name}, using name")
+                        channel_id = channel_name
+                else:
+                    self.logger.warning("Failed to get channels list")
+                    channel_id = channel_name
+                    
+            except Exception as e:
+                self.logger.warning(f"Failed to get channel ID: {e}")
+                channel_id = channel_name
             
             upload_args = {
                 "file": io.BytesIO(image_data),
                 "filename": filename,
                 "title": filename,
-                "channels": [channel_name],  # Try as list format
+                "channels": [channel_id],  # Use channel ID
                 "initial_comment": text
             }
             
