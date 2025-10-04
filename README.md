@@ -54,6 +54,9 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
      - `channels:read` (for channel ID resolution in file uploads)
      - `app_mentions:read` (for bot command processing)
      - `channels:history` (for polling mode fallback)
+     - `groups:history` (for private channel polling)
+     - `mpim:history` (for multi-party DM polling)
+     - `im:history` (for direct message polling)
    - For Socket Mode (recommended), also add:
      - Go to *Socket Mode* and enable it
      - Copy the App-Level Token (starts with `xapp-`)
@@ -318,6 +321,56 @@ The script is designed to handle failures gracefully:
 
 This project is open source. Feel free to modify and distribute.
 
+## Troubleshooting
+
+### Common Issues
+
+#### Slack Authentication Errors
+If you see `invalid_auth` errors:
+
+```bash
+# Check if token is set
+echo $SLACK_BOT_TOKEN
+
+# If empty, re-export it
+export SLACK_BOT_TOKEN="xoxb-your-actual-token"
+
+# Test the token works
+python3 -c "from slack_sdk import WebClient; client = WebClient(token='$SLACK_BOT_TOKEN'); print(client.auth_test())"
+```
+
+**Common causes:**
+- SSH session disconnected and environment variable lost
+- Terminal session restarted without preserving exports
+- Token expired and needs refresh from Slack
+
+#### Persistent Environment Variables
+For long-running sessions, add to your shell profile:
+
+```bash
+# Add to ~/.bashrc for persistence
+echo 'export SLACK_BOT_TOKEN="xoxb-your-token"' >> ~/.bashrc
+source ~/.bashrc
+
+# Or create a startup script
+cat > start_timelapse.sh << 'EOF'
+#!/bin/bash
+export SLACK_BOT_TOKEN="xoxb-your-token"
+screen -S timelapse python3 local_tp.py
+EOF
+chmod +x start_timelapse.sh
+```
+
+#### Camera Issues
+- **"Camera not found"**: Enable camera interface with `sudo raspi-config`
+- **"Permission denied"**: Add user to video group: `sudo usermod -a -G video $USER`
+- **"Control not advertised"**: Update Pi OS: `sudo apt update && sudo apt upgrade`
+
+#### Performance Issues
+- **High CPU usage**: Reduce image resolution in config.yaml
+- **Memory issues**: Enable swap: `sudo dphys-swapfile swapoff && sudo dphys-swapfile swapon`
+- **Temperature warnings**: Add heatsink or reduce capture frequency
+
 ## Support
 
 For issues and questions:
@@ -325,3 +378,4 @@ For issues and questions:
 2. Verify camera connection and configuration
 3. Ensure all dependencies are installed
 4. Check system resources (temperature, disk space)
+5. Verify Slack bot token and permissions

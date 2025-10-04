@@ -150,10 +150,11 @@ class TimelapseBot:
         while self.is_running:
             try:
                 # Get recent messages from the channel
-                channel = self.camera_controller.slack.channel
+                channel_name = self.camera_controller.slack.channel
+                channel_id = self.camera_controller.slack._convert_channel_name_to_id(channel_name)
                 
                 response = self.web_client.conversations_history(
-                    channel=channel,
+                    channel=channel_id,
                     limit=10,
                     oldest=last_timestamp
                 )
