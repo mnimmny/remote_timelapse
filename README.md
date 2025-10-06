@@ -2,6 +2,12 @@
 
 A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the picamera2 module with YAML configuration.
 
+## Docs
+- See `AGENT.md` for repo map, interfaces, config schema, and mock mode
+- See `TROUBLESHOOTING.md` for symptom→fix lookups and diagnostics
+- See `DECISIONS.md` for architecture/API/security rationale
+- See `CONTRIBUTING.md` for setup, dev workflow, and style
+
 ## Features
 
 - **Easy Configuration**: YAML-based configuration file for all camera settings
@@ -9,7 +15,7 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
 - **System Monitoring**: Temperature and disk space monitoring
 - **Image Management**: Automatic cleanup of old images
 - **Video Creation**: Optional video creation from captured images
-- **Slack Notifications**: Real-time notifications with webhook integration
+- **Slack Notifications**: Real-time notifications with Slack SDK bot integration
 - **Low-res Photo Updates**: Periodic low-resolution photos sent to Slack
 - **Slack Bot Control**: Interactive Slack commands to control camera remotely
 - **System Monitoring**: Temperature and disk space alerts
@@ -53,10 +59,11 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
      - `files:write` (for uploading files)
      - `channels:read` (for channel ID resolution in file uploads)
      - `app_mentions:read` (for bot command processing)
-     - `channels:history` (for polling mode fallback)
+     - `channels:history` (only for polling mode fallback; not needed for Socket Mode)
      - `groups:history` (for private channel polling)
      - `mpim:history` (for multi-party DM polling)
      - `im:history` (for direct message polling)
+   - Invite the bot to your target channel (e.g., `#timelapse`)
    - For Socket Mode (recommended), also add:
      - Go to *Socket Mode* and enable it
      - Copy the App-Level Token (starts with `xapp-`)
@@ -64,6 +71,8 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
    - Install the app to your workspace
    - Copy the Bot User OAuth Token (starts with `xoxb-`)
    - Set the environment variable: `export SLACK_BOT_TOKEN="xoxb-your-bot-token"`
+
+4. **Docs quick links:** See `AGENT.md`, `TROUBLESHOOTING.md`, `DECISIONS.md`, `CONTRIBUTING.md` for deeper details.
 
 4. **Enable camera interface:**
    ```bash
@@ -181,6 +190,8 @@ python3 timelapse_bot.py
 - Fallback polling mode if Socket Mode unavailable
 - Commands: `@bot photo`, `@bot status`, `@bot start 30s 10m`, `@bot stop`, `@bot help`
 
+Note: If `SLACK_BOT_TOKEN` is missing or invalid, the bot will exit immediately (in `screen` this appears as "[screen is terminating]").
+
 ### Alternative: Background Process
 ```bash
 # Run in background (less interactive)
@@ -218,10 +229,11 @@ pkill -f local_tp.py
 - Use external storage
 
 ### Slack Notifications Not Working
-- Verify webhook URL is correct
+- Verify `SLACK_BOT_TOKEN` is set and valid
 - Check internet connectivity
 - Ensure Slack app has proper permissions
-- Check log file for webhook errors
+- Ensure the bot is invited to the target channel
+- Check logs for Slack API errors
 
 ## Configuration Examples
 
