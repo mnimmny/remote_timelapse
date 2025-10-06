@@ -196,6 +196,7 @@ pkill -f local_tp.py
 > **Note**: SSH connections can drop due to network issues. Screen sessions persist through disconnections, so you can reconnect and monitor your timelapse anytime.
 
 ## Troubleshooting
+(See also: `TROUBLESHOOTING.md` for a full guide.)
 
 ### Camera Not Found
 - Ensure camera is properly connected
@@ -372,6 +373,7 @@ chmod +x start_timelapse.sh
 - **Temperature warnings**: Add heatsink or reduce capture frequency
 
 ## Support
+(See also: `CONTRIBUTING.md` and `DECISIONS.md`.)
 
 For issues and questions:
 1. Check the log file for error messages
