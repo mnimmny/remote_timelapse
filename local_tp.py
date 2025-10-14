@@ -684,10 +684,11 @@ class PiCameraController:
             controls_dict = {}
             
             # Legacy exposure mode (for backward compatibility)
-            if self.config['camera']['exposure_mode'] != 'auto':
+            legacy_exposure_mode = self.config['camera'].get('exposure_mode', 'auto')
+            if legacy_exposure_mode != 'auto':
                 controls_dict['ExposureMode'] = getattr(
                     controls.ExposureModeEnum, 
-                    self.config['camera']['exposure_mode'].upper()
+                    legacy_exposure_mode.upper()
                 )
             
             # New macro exposure settings
