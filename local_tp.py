@@ -680,7 +680,7 @@ class PiCameraController:
             
             self.camera.configure(camera_config)
             
-            # Set camera controls
+            # Set camera controls (consolidated to avoid conflicts)
             controls_dict = {}
             
             # Legacy exposure mode (for backward compatibility)
@@ -706,9 +706,8 @@ class PiCameraController:
                 # Auto exposure
                 controls_dict['AeEnable'] = True
             
-            # AWB mode
+            # AWB mode (only set if not auto)
             if self.config['camera']['awb_mode'] != 'auto':
-                controls_dict['AeEnable'] = False
                 controls_dict['AwbMode'] = getattr(
                     controls.AwbModeEnum,
                     self.config['camera']['awb_mode'].upper()
@@ -735,29 +734,26 @@ class PiCameraController:
                 elif focus_mode == 'continuous':
                     # Continuous focus
                     controls_dict['AfMode'] = controls.AfModeEnum.Continuous
-            # Note: Legacy focus_mode support removed - use focus: section instead
             
             # Image quality settings for macro
             if self.config['camera'].get('noise_reduction', False):
                 controls_dict['NoiseReductionMode'] = controls.draft.NoiseReductionModeEnum.HighQuality
             
-            if self.config['camera'].get('stabilization', False):
-                controls_dict['ColourGains'] = (1.0, 1.0)  # Basic stabilization
+            # REMOVED: ColourGains control that was causing green tint
+            # if self.config['camera'].get('stabilization', False):
+            #     controls_dict['ColourGains'] = (1.0, 1.0)  # This was causing green tint
             
-            if controls_dict:
-                self.camera.set_controls(controls_dict)
-            
-            # Set image effects and adjustments
-            controls_dict = {
+            # Add image effects and adjustments to same controls dict
+            controls_dict.update({
                 "Brightness": self.config['camera']['brightness'],
                 "Contrast": self.config['camera']['contrast'],
                 "Saturation": self.config['camera']['saturation'],
                 "Sharpness": self.config['camera']['sharpness']
-            }
+            })
             
-            # Note: Flip controls are handled in camera configuration above
-            
-            self.camera.set_controls(controls_dict)
+            # Apply all controls in one call to avoid conflicts
+            if controls_dict:
+                self.camera.set_controls(controls_dict)
             
             self.camera.start()
             self.logger.info("Camera initialized successfully")
