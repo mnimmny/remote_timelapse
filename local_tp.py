@@ -471,12 +471,19 @@ class PiCameraController:
             
             # Expand paths with ~ and environment variables
             config = self._expand_paths(config)
+            
+            # Validate macro configuration settings
+            self._validate_macro_config(config)
+            
             return config
         except FileNotFoundError:
             print(f"Error: Configuration file '{config_path}' not found")
             sys.exit(1)
         except yaml.YAMLError as e:
             print(f"Error parsing YAML configuration: {e}")
+            sys.exit(1)
+        except ValueError as e:
+            print(f"Error: Invalid configuration: {e}")
             sys.exit(1)
     
     def _expand_paths(self, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -506,6 +513,63 @@ class PiCameraController:
                     current[final_key] = os.path.expanduser(os.path.expandvars(current[final_key]))
         
         return config
+    
+    def _validate_macro_config(self, config: Dict[str, Any]) -> None:
+        """Validate macro photography configuration settings"""
+        camera_config = config.get('camera', {})
+        
+        # Validate focus settings
+        focus_config = camera_config.get('focus', {})
+        if focus_config:
+            focus_mode = focus_config.get('mode', 'auto')
+            if focus_mode not in ['auto', 'manual', 'continuous']:
+                raise ValueError(f"Invalid focus mode: {focus_mode}. Must be 'auto', 'manual', or 'continuous'")
+            
+            if focus_mode == 'manual':
+                lens_position = focus_config.get('lens_position')
+                if lens_position is not None:
+                    if not isinstance(lens_position, (int, float)):
+                        raise ValueError("lens_position must be a number")
+                    if lens_position < 0.0 or lens_position > 1000.0:
+                        raise ValueError(f"lens_position {lens_position} out of range (0.0-1000.0)")
+        
+        # Validate exposure settings
+        exposure_config = camera_config.get('exposure', {})
+        if exposure_config:
+            exposure_mode = exposure_config.get('mode', 'auto')
+            if exposure_mode not in ['auto', 'manual', 'sport', 'night']:
+                raise ValueError(f"Invalid exposure mode: {exposure_mode}. Must be 'auto', 'manual', 'sport', or 'night'")
+            
+            if exposure_mode == 'manual':
+                shutter_speed = exposure_config.get('shutter_speed')
+                if shutter_speed is not None:
+                    if not isinstance(shutter_speed, (int, float)):
+                        raise ValueError("shutter_speed must be a number")
+                    if shutter_speed < 1 or shutter_speed > 1000000:
+                        raise ValueError(f"shutter_speed {shutter_speed} out of range (1-1000000 microseconds)")
+                
+                iso = exposure_config.get('iso')
+                if iso is not None:
+                    if not isinstance(iso, (int, float)):
+                        raise ValueError("iso must be a number")
+                    if iso < 100 or iso > 3200:
+                        raise ValueError(f"iso {iso} out of range (100-3200)")
+                
+                gain = exposure_config.get('gain')
+                if gain is not None:
+                    if not isinstance(gain, (int, float)):
+                        raise ValueError("gain must be a number")
+                    if gain < 0.0 or gain > 16.0:
+                        raise ValueError(f"gain {gain} out of range (0.0-16.0)")
+        
+        # Validate image quality settings
+        if 'noise_reduction' in camera_config:
+            if not isinstance(camera_config['noise_reduction'], bool):
+                raise ValueError("noise_reduction must be a boolean")
+        
+        if 'stabilization' in camera_config:
+            if not isinstance(camera_config['stabilization'], bool):
+                raise ValueError("stabilization must be a boolean")
     
     def _setup_logging(self) -> logging.Logger:
         """Setup logging configuration"""
@@ -591,12 +655,27 @@ class PiCameraController:
             # Set camera controls
             controls_dict = {}
             
-            # Exposure mode
+            # Legacy exposure mode (for backward compatibility)
             if self.config['camera']['exposure_mode'] != 'auto':
                 controls_dict['ExposureMode'] = getattr(
                     controls.ExposureModeEnum, 
                     self.config['camera']['exposure_mode'].upper()
                 )
+            
+            # New macro exposure settings
+            exposure_config = self.config['camera'].get('exposure', {})
+            if exposure_config.get('mode') == 'manual':
+                # Manual exposure control
+                controls_dict['AeEnable'] = False
+                if 'shutter_speed' in exposure_config:
+                    controls_dict['ExposureTime'] = exposure_config['shutter_speed']
+                if 'iso' in exposure_config:
+                    controls_dict['AnalogueGain'] = exposure_config['iso'] / 100.0
+                if 'gain' in exposure_config:
+                    controls_dict['AnalogueGain'] = exposure_config['gain']
+            elif exposure_config.get('mode') == 'auto':
+                # Auto exposure
+                controls_dict['AeEnable'] = True
             
             # AWB mode
             if self.config['camera']['awb_mode'] != 'auto':
@@ -606,12 +685,37 @@ class PiCameraController:
                     self.config['camera']['awb_mode'].upper()
                 )
             
-            # Focus mode
+            # Legacy focus mode (for backward compatibility)
             if self.config['camera']['focus_mode'] != 'auto':
                 controls_dict['AfMode'] = getattr(
                     controls.AfModeEnum,
                     self.config['camera']['focus_mode'].upper()
                 )
+            
+            # New macro focus settings
+            focus_config = self.config['camera'].get('focus', {})
+            if focus_config.get('mode') == 'manual':
+                # Manual focus control
+                controls_dict['AfMode'] = controls.AfModeEnum.Manual
+                if 'lens_position' in focus_config:
+                    lens_pos = focus_config['lens_position']
+                    # Validate lens position range (0.0-1000.0)
+                    lens_pos = max(0.0, min(1000.0, lens_pos))
+                    controls_dict['LensPosition'] = lens_pos
+                    self.logger.info(f"Manual focus set to lens position: {lens_pos}")
+            elif focus_config.get('mode') == 'auto':
+                # Auto focus
+                controls_dict['AfMode'] = controls.AfModeEnum.Auto
+            elif focus_config.get('mode') == 'continuous':
+                # Continuous focus
+                controls_dict['AfMode'] = controls.AfModeEnum.Continuous
+            
+            # Image quality settings for macro
+            if self.config['camera'].get('noise_reduction', False):
+                controls_dict['NoiseReductionMode'] = controls.draft.NoiseReductionModeEnum.HighQuality
+            
+            if self.config['camera'].get('stabilization', False):
+                controls_dict['ColourGains'] = (1.0, 1.0)  # Basic stabilization
             
             if controls_dict:
                 self.camera.set_controls(controls_dict)

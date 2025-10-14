@@ -18,4 +18,7 @@ Reason: Real-time events, no polling scopes, simpler logic. Polling only as fall
 ### Config via YAML + env expansion
 Reason: Portability; avoid hardcoding secrets/paths. Supports `~` and `${VARS}`.
 
+### Macro photography via config (not code)
+Reason: User-friendly; no code changes needed. Extends existing YAML pattern with validation.
+
 

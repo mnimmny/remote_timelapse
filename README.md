@@ -97,6 +97,16 @@ Edit `config.yaml` to customize your camera settings:
 - **Focus Mode**: Auto, manual, continuous
 - **Image Orientation**: Vertical and horizontal flip options
 
+### Macro Photography Settings
+- **Manual Focus**: Set `focus.mode: "manual"` and `lens_position: 10.0` for 10cm focus
+- **Lens Position**: Range 0.0-1000.0 (lower values = closer focus)
+- **Manual Exposure**: Set `exposure.mode: "manual"` for precise control
+- **Shutter Speed**: Set in microseconds (e.g., 1000 = 1/1000s)
+- **ISO**: Set sensitivity (100-3200)
+- **Gain**: Additional gain control (0.0-16.0)
+- **Noise Reduction**: Enable for better macro detail
+- **Stabilization**: Enable for close-up work
+
 ### Timelapse Settings
 - **Interval**: Seconds between captures (default: 5)
 - **Duration**: Total timelapse duration in seconds (default: 3600 = 1 hour)
@@ -270,6 +280,29 @@ camera:
 timelapse:
   interval: 30
   duration: 10800  # 3 hours
+```
+
+### Macro Photography (10-20cm focus)
+```yaml
+camera:
+  resolution:
+    width: 1920
+    height: 1080
+  quality: 95
+  focus:
+    mode: "manual"
+    lens_position: 10.0  # 10cm focus distance
+  exposure:
+    mode: "manual"
+    shutter_speed: 1000  # 1/1000s for sharp macro shots
+    iso: 100  # Low ISO for detail
+    gain: 1.0
+  noise_reduction: true
+  stabilization: true
+  sharpness: 1.2  # Enhanced sharpness for macro
+timelapse:
+  interval: 5
+  duration: 1800  # 30 minutes
 ```
 
 ### Flipped Camera Setup

@@ -31,6 +31,23 @@ camera:
   # Image orientation
   vflip: true  # Flip image vertically
   hflip: false  # Flip image horizontally
+  
+  # Macro photography settings
+  focus:
+    mode: "auto"  # Options: "auto", "manual", "continuous"
+    lens_position: 10.0  # For manual focus (0.0-1000.0, lower = closer)
+    # Alternative: distance: 0.10  # Focus distance in meters (10cm)
+  
+  # Manual exposure control (important for macro)
+  exposure:
+    mode: "auto"  # Options: "auto", "manual", "sport", "night"
+    shutter_speed: 1000  # microseconds (1/1000s for macro)
+    iso: 100  # ISO sensitivity (100-3200)
+    gain: 1.0  # Additional gain control (0.0-16.0)
+  
+  # Image quality settings for macro
+  noise_reduction: true  # Reduce noise for better macro detail
+  stabilization: true  # Image stabilization for close-up work
 
 # Timelapse settings
 timelapse:

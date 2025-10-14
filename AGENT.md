@@ -27,6 +27,16 @@ camera:
   resolution: { width: int, height: int }
   vflip: bool
   hflip: bool
+  focus:
+    mode: "auto|manual|continuous"
+    lens_position: float  # 0.0-1000.0 for manual focus
+  exposure:
+    mode: "auto|manual|sport|night"
+    shutter_speed: int    # microseconds
+    iso: int              # 100-3200
+    gain: float           # 0.0-16.0
+  noise_reduction: bool
+  stabilization: bool
 
 timelapse:
   interval: int   # seconds
@@ -97,5 +107,6 @@ class MockPiCameraController:
 ### Prompts Examples
 - "Start a 30-minute timelapse every 5s": Update `timelapse` in `config.yaml` and run `local_tp.py`
 - "Enable low-res Slack photos": set `slack.notifications.send_photos: true` and intervals
+- "Set up macro photography for 10cm focus": set `camera.focus.mode: "manual"` and `lens_position: 10.0`
 
 
