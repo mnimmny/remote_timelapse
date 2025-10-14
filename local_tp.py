@@ -525,22 +525,46 @@ class PiCameraController:
             if focus_mode not in ['auto', 'manual', 'continuous']:
                 raise ValueError(f"Invalid focus mode: {focus_mode}. Must be 'auto', 'manual', or 'continuous'")
             
+            # Check for mixed auto/manual focus configuration
+            if focus_mode in ['auto', 'continuous']:
+                manual_values = ['lens_position']
+                provided_manual = [key for key in manual_values if key in focus_config and focus_config[key] is not None]
+                if provided_manual:
+                    raise ValueError(f"Invalid configuration: focus.mode is '{focus_mode}' but manual values provided: {provided_manual}. Manual values are ignored in auto/continuous mode.")
+            
             if focus_mode == 'manual':
                 lens_position = focus_config.get('lens_position')
-                if lens_position is not None:
-                    if not isinstance(lens_position, (int, float)):
-                        raise ValueError("lens_position must be a number")
-                    if lens_position < 0.0 or lens_position > 1000.0:
-                        raise ValueError(f"lens_position {lens_position} out of range (0.0-1000.0)")
+                if lens_position is None:
+                    raise ValueError("focus.mode is 'manual' but no lens_position provided. Manual focus requires lens_position.")
+                if not isinstance(lens_position, (int, float)):
+                    raise ValueError("lens_position must be a number")
+                if lens_position < 0.0 or lens_position > 1000.0:
+                    raise ValueError(f"lens_position {lens_position} out of range (0.0-1000.0)")
         
         # Validate exposure settings
         exposure_config = camera_config.get('exposure', {})
+        legacy_exposure_mode = camera_config.get('exposure_mode', 'auto')
+        
         if exposure_config:
             exposure_mode = exposure_config.get('mode', 'auto')
             if exposure_mode not in ['auto', 'manual', 'sport', 'night']:
                 raise ValueError(f"Invalid exposure mode: {exposure_mode}. Must be 'auto', 'manual', 'sport', or 'night'")
             
+            # Check for mixed auto/manual configuration
+            if exposure_mode in ['auto', 'sport', 'night']:
+                manual_values = ['shutter_speed', 'iso', 'gain']
+                provided_manual = [key for key in manual_values if key in exposure_config and exposure_config[key] is not None]
+                if provided_manual:
+                    raise ValueError(f"Invalid configuration: exposure.mode is '{exposure_mode}' but manual values provided: {provided_manual}. Manual values are ignored in auto/sport/night mode.")
+            
             if exposure_mode == 'manual':
+                # For manual mode, at least one manual value should be provided
+                manual_values = ['shutter_speed', 'iso', 'gain']
+                provided_manual = [key for key in manual_values if key in exposure_config and exposure_config[key] is not None]
+                if not provided_manual:
+                    raise ValueError("exposure.mode is 'manual' but no manual values provided. Manual exposure requires at least one of: shutter_speed, iso, or gain.")
+                
+                # Validate provided manual values
                 shutter_speed = exposure_config.get('shutter_speed')
                 if shutter_speed is not None:
                     if not isinstance(shutter_speed, (int, float)):
@@ -561,6 +585,10 @@ class PiCameraController:
                         raise ValueError("gain must be a number")
                     if gain < 0.0 or gain > 16.0:
                         raise ValueError(f"gain {gain} out of range (0.0-16.0)")
+        
+        # Warn about legacy exposure_mode if new exposure section exists
+        if exposure_config and legacy_exposure_mode != 'auto':
+            raise ValueError("Cannot use both legacy 'exposure_mode' and new 'exposure' section. Use only the 'exposure' section.")
         
         # Validate image quality settings
         if 'noise_reduction' in camera_config:

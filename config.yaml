@@ -15,7 +15,6 @@ camera:
   sensor_mode: 0  # 0=auto, 1=1080p30, 2=1080p60, 3=4K
   
   # Exposure and focus
-  exposure_mode: "auto"  # auto, night, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks
   awb_mode: "auto"  # auto, off, sunlight, cloudy, shade, tungsten, fluorescent, incandescent, flash, horizon
   
   # Image effects
@@ -34,23 +33,24 @@ camera:
   # Macro photography settings
   focus:
     mode: "auto"  # Options: "auto", "manual", "continuous"
-    lens_position: 10.0  # For manual focus (0.0-1000.0, lower = closer)
+    # lens_position: 10.0  # REQUIRED for manual mode (0.0-1000.0, lower = closer)
     # Alternative: distance: 0.10  # Focus distance in meters (10cm)
   
   # Manual exposure control (important for macro)
   exposure:
     mode: "auto"  # Options: "auto", "manual", "sport", "night"
-    shutter_speed: 1000  # microseconds (1/1000s for macro)
-    iso: 100  # ISO sensitivity (100-3200)
-    gain: 1.0  # Additional gain control (0.0-16.0)
+    # Manual values REQUIRED when mode: "manual" (at least one of:)
+    # shutter_speed: 1000  # microseconds (1/1000s for macro)
+    # iso: 100  # ISO sensitivity (100-3200)
+    # gain: 1.0  # Additional gain control (0.0-16.0), note if mode: "auto" this will be ignored
   
   # Image quality settings for macro
-  noise_reduction: true  # Reduce noise for better macro detail
-  stabilization: true  # Image stabilization for close-up work
+  noise_reduction: true  # Reduce noise for better macro detail, note if focus: mode: "auto" this will be ignored
+  stabilization: true  # Image stabilization for close-up work, note if focus: mode: "auto" this will be ignored
 
 # Timelapse settings
 timelapse:
-  enabled: true
+  enabled: true1
   interval: 60  # seconds between captures
   duration: 15600  # total duration in seconds (1 hour)
   output_dir: "~/timelapse_images"  # Uses $HOME environment variable
