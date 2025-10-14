@@ -17,7 +17,6 @@ camera:
   # Exposure and focus
   exposure_mode: "auto"  # auto, night, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks
   awb_mode: "auto"  # auto, off, sunlight, cloudy, shade, tungsten, fluorescent, incandescent, flash, horizon
-  focus_mode: "auto"  # auto, manual, continuous
   
   # Image effects
   image_effect: "none"  # none, negative, solarize, sketch, denoise, emboss, oilpaint, hatch, gpen, pastel, watercolor, film, blur, saturation, colorswap, washedout, posterise, colorpoint, colorbalance, cartoon, deinterlace1, deinterlace2

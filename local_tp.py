@@ -685,30 +685,28 @@ class PiCameraController:
                     self.config['camera']['awb_mode'].upper()
                 )
             
-            # Legacy focus mode (for backward compatibility)
-            if self.config['camera']['focus_mode'] != 'auto':
-                controls_dict['AfMode'] = getattr(
-                    controls.AfModeEnum,
-                    self.config['camera']['focus_mode'].upper()
-                )
-            
-            # New macro focus settings
+            # Focus control (macro settings only)
             focus_config = self.config['camera'].get('focus', {})
-            if focus_config.get('mode') == 'manual':
-                # Manual focus control
-                controls_dict['AfMode'] = controls.AfModeEnum.Manual
-                if 'lens_position' in focus_config:
-                    lens_pos = focus_config['lens_position']
-                    # Validate lens position range (0.0-1000.0)
-                    lens_pos = max(0.0, min(1000.0, lens_pos))
-                    controls_dict['LensPosition'] = lens_pos
-                    self.logger.info(f"Manual focus set to lens position: {lens_pos}")
-            elif focus_config.get('mode') == 'auto':
-                # Auto focus
-                controls_dict['AfMode'] = controls.AfModeEnum.Auto
-            elif focus_config.get('mode') == 'continuous':
-                # Continuous focus
-                controls_dict['AfMode'] = controls.AfModeEnum.Continuous
+            
+            if focus_config:
+                # Use macro focus settings
+                focus_mode = focus_config.get('mode', 'auto')
+                if focus_mode == 'manual':
+                    # Manual focus control
+                    controls_dict['AfMode'] = controls.AfModeEnum.Manual
+                    if 'lens_position' in focus_config:
+                        lens_pos = focus_config['lens_position']
+                        # Validate lens position range (0.0-1000.0)
+                        lens_pos = max(0.0, min(1000.0, lens_pos))
+                        controls_dict['LensPosition'] = lens_pos
+                        self.logger.info(f"Manual focus set to lens position: {lens_pos}")
+                elif focus_mode == 'auto':
+                    # Auto focus
+                    controls_dict['AfMode'] = controls.AfModeEnum.Auto
+                elif focus_mode == 'continuous':
+                    # Continuous focus
+                    controls_dict['AfMode'] = controls.AfModeEnum.Continuous
+            # Note: Legacy focus_mode support removed - use focus: section instead
             
             # Image quality settings for macro
             if self.config['camera'].get('noise_reduction', False):

@@ -37,6 +37,9 @@ camera:
     gain: float           # 0.0-16.0
   noise_reduction: bool
   stabilization: bool
+  # Legacy settings (still supported)
+  exposure_mode: "auto|night|sport|..."
+  awb_mode: "auto|daylight|tungsten|..."
 
 timelapse:
   interval: int   # seconds
