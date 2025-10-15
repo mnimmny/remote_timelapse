@@ -22,6 +22,13 @@ Quick lookup of common symptoms → causes → fixes.
 - `Control VerticalFlip is not advertised`
   - Fix: Use `transform` in Picamera2 config; avoid direct control
 
+- Images have green tint / color cast
+  - Cause: `ColourGains` control forcing white balance; or mixed auto/manual settings (e.g., `AeEnable=True` with manual `ColourGains`/AWB/Exposure values)
+  - Fix:
+    - Remove `ColourGains = (1.0, 1.0)` from camera controls (let AWB handle color)
+    - Avoid mixing modes: if `exposure.mode: auto`, do not set `ExposureTime`/`AnalogueGain`; if `focus.mode: auto|continuous`, do not set `LensPosition`
+    - Prefer AWB auto unless explicitly tuning: ensure `awb_mode: auto` during troubleshooting
+
 - No images, keeps starting/stopping
   - Check SSH connection drops; use `screen` to persist
 

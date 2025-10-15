@@ -18,6 +18,7 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
 - **Slack Notifications**: Real-time notifications with Slack SDK bot integration
 - **Low-res Photo Updates**: Periodic low-resolution photos sent to Slack
 - **Slack Bot Control**: Interactive Slack commands to control camera remotely
+- **Web-based Preview**: Live camera preview with auto-reloading config for easy adjustments
 - **System Monitoring**: Temperature and disk space alerts
 - **Robust Error Handling**: Comprehensive logging and error recovery
 - **Pi Zero W Optimized**: Settings optimized for Pi Zero W performance
@@ -51,7 +52,12 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
    pip3 install -r requirements.txt
    ```
 
-3. **Setup Slack bot (optional):**
+3. **Install web preview dependencies (optional):**
+   ```bash
+   pip3 install flask opencv-python
+   ```
+
+4. **Setup Slack bot (optional):**
    - Go to your Slack workspace
    - Create a new app or use an existing one
    - In *OAuth & Permissions* under *Bot Token Scopes*, add these OAuth scopes:
@@ -72,17 +78,17 @@ A Python script for controlling Raspberry Pi Camera 3 on Pi Zero W using the pic
    - Copy the Bot User OAuth Token (starts with `xoxb-`)
    - Set the environment variable: `export SLACK_BOT_TOKEN="xoxb-your-bot-token"`
 
-4. **Docs quick links:** See `AGENT.md`, `TROUBLESHOOTING.md`, `DECISIONS.md`, `CONTRIBUTING.md` for deeper details.
+5. **Docs quick links:** See `AGENT.md`, `TROUBLESHOOTING.md`, `DECISIONS.md`, `CONTRIBUTING.md` for deeper details.
 
-4. **Enable camera interface:**
+6. **Enable camera interface:**
    ```bash
    sudo raspi-config
    # Navigate to: Interface Options > Camera > Enable
    ```
 
-5. **Clone or download the script files:**
+7. **Clone or download the script files:**
    ```bash
-   # Make sure config.yaml and local_tp.py are in the same directory
+   # Make sure config.yaml, local_tp.py, and preview_web.py are in the same directory
    ```
 
 ## Configuration
@@ -145,6 +151,9 @@ nohup python3 local_tp.py > output.log 2>&1 &
 ```
 timelapse/
 ├── local_tp.py          # Main camera controller script
+├── timelapse_bot.py     # Slack bot for interactive control
+├── preview_web.py       # Web-based camera preview
+├── start_preview.sh     # Convenience script for preview
 ├── config.yaml          # Configuration file
 ├── requirements.txt     # Python dependencies
 └── README.md           # This file
@@ -179,6 +188,27 @@ screen -ls
 # Or kill session entirely:
 screen -S timelapse -X quit
 ```
+
+### Web Preview Mode
+For live camera preview and config adjustments:
+
+```bash
+# Start web preview server
+screen -S camera-preview python3 preview_web.py
+
+# Or use the convenience script
+./start_preview.sh
+
+# Access preview in browser
+# http://your-pi-ip:5000
+```
+
+**Preview Features:**
+- Live camera feed in web browser
+- Auto-reloads config.yaml changes (~1 second)
+- Perfect for headless Pi Zero W setup
+- Uses same PiCameraController class as main script (guaranteed consistency)
+- Real-time camera adjustments with identical validation
 
 ### Slack Bot Mode
 For interactive Slack control:

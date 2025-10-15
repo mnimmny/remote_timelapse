@@ -21,4 +21,7 @@ Reason: Portability; avoid hardcoding secrets/paths. Supports `~` and `${VARS}`.
 ### Macro photography via config (not code)
 Reason: User-friendly; no code changes needed. Extends existing YAML pattern with validation.
 
+### Web-based preview with auto-reloading config
+Reason: Headless Pi Zero W setup; real-time camera adjustments without SSH/terminal. Reuses PiCameraController class to eliminate code duplication and guarantee identical behavior.
+
 

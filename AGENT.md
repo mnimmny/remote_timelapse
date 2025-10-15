@@ -5,14 +5,18 @@ Purpose: Give LLMs and automations a concise, structured map of the repo, stable
 ### Repository Map
 - `local_tp.py`: Main timelapse controller and `SlackNotifier`
 - `timelapse_bot.py`: Slack bot for interactive control
+- `preview_web.py`: Web-based camera preview (reuses PiCameraController class)
+- `start_preview.sh`: Convenience script to start preview in screen session
 - `config.yaml`: User configuration (camera, timelapse, slack, system)
 - `requirements.txt`: Python dependencies (SDKs; picamera2 via apt)
 - `README.md`: Human quickstart and usage
 
 ### Entrypoints and Contracts
-- `PiCameraController`
+- `PiCameraController` (shared by main script and web preview)
   - `run_timelapse()`: Start timelapse according to `config.yaml`
   - `capture_image(...)`: Capture single image to disk
+  - `_setup_camera()`: Initialize camera with config (used by preview)
+  - `_load_config()`: Load and validate config (used by preview)
   - Fields used by bot: `config`, `image_count`, `start_time`
 - `SlackNotifier`
   - `send_start_notification(...)`, `send_progress_update(...)`, `send_photo_notification(...)`, `send_stop_notification(...)`
@@ -69,6 +73,7 @@ system:
 ### Common Automations
 - Start timelapse (headless): `screen -S timelapse python3 local_tp.py`
 - Start bot (Socket Mode): `screen -S timelapse-bot python3 timelapse_bot.py`
+- Start web preview: `screen -S camera-preview python3 preview_web.py` or `./start_preview.sh`
 - Verify Slack auth: `python3 -c "from slack_sdk import WebClient; import os; print(WebClient(token=os.environ['SLACK_BOT_TOKEN']).auth_test())"`
 
 ### Error→Fix Lookup (quick)
@@ -111,5 +116,7 @@ class MockPiCameraController:
 - "Start a 30-minute timelapse every 5s": Update `timelapse` in `config.yaml` and run `local_tp.py`
 - "Enable low-res Slack photos": set `slack.notifications.send_photos: true` and intervals
 - "Set up macro photography for 10cm focus": set `camera.focus.mode: "manual"` and `lens_position: 10.0`
+- "Preview camera settings in browser": run `python3 preview_web.py` and visit `http://pi-ip:5000`
+- "Adjust focus for macro work": edit `config.yaml` lens_position, save, see changes in preview
 
 
