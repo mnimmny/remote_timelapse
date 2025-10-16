@@ -7,6 +7,10 @@ requests>=2.25.0
 slack-sdk>=3.20.0
 pathlib2>=2.3.7; python_version < "3.4"
 
+# Web preview dependencies
+flask>=2.0.0
+opencv-python-headless>=4.5.0
+
 # Note: picamera2 is installed via apt on Raspberry Pi OS
 # sudo apt update && sudo apt install -y python3-picamera2
 
