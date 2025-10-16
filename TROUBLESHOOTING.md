@@ -34,7 +34,8 @@ Quick lookup of common symptoms → causes → fixes.
 
 - `Camera in Configured/Acquired state trying acquire() requiring state Available` (preview_web.py)
   - Cause: Camera not properly released before reconfiguration; PiCamera2 state machine conflict
-  - Fix: Enhanced camera cleanup with 2-second delay and forced resource release; restart preview if persists
+  - Fix: Enhanced camera cleanup with 3-second delay, garbage collection, and forced resource release
+  - If persists: Restart preview (`Ctrl+C` then `python3 preview_web.py`); avoid rapid config changes
 
 ### Runtime
 - Script dies after SSH disconnect

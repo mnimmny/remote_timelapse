@@ -57,7 +57,7 @@ def reload_controller_config():
                 print(f"Config reloaded at {datetime.now().strftime('%H:%M:%S')}")
                 return True
             else:
-                print("Failed to reload config")
+                print("Failed to reload config - camera may be busy, try again in a few seconds")
                 return False
     except Exception as e:
         print(f"Error reloading config: {e}")
