@@ -49,23 +49,15 @@ def initialize_controller():
         return False
 
 def reload_controller_config():
-    """Reload config and reapply camera settings"""
+    """Reload config and reapply camera settings using controller method"""
     global controller
     try:
         if controller:
-            # Reload config using existing method
-            controller.config = controller._load_config("config.yaml")
-            
-            # Stop current camera
-            if controller.camera:
-                controller.camera.stop()
-            
-            # Reapply camera settings
-            if controller._setup_camera():
+            if controller.reload_config():
                 print(f"Config reloaded at {datetime.now().strftime('%H:%M:%S')}")
                 return True
             else:
-                print("Failed to reapply camera settings")
+                print("Failed to reload config")
                 return False
     except Exception as e:
         print(f"Error reloading config: {e}")

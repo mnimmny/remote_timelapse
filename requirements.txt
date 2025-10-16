@@ -9,6 +9,8 @@ pathlib2>=2.3.7; python_version < "3.4"
 
 # Web preview dependencies
 flask>=2.0.0
+# Note: For Raspberry Pi, use system package: sudo apt install python3-opencv
+# For other systems, use: pip install opencv-python-headless (or opencv-python if headless fails)
 opencv-python-headless>=4.5.0
 
 # Note: picamera2 is installed via apt on Raspberry Pi OS

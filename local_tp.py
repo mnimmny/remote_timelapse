@@ -981,6 +981,42 @@ class PiCameraController:
         except Exception as e:
             self.logger.error(f"Failed to create video: {e}")
     
+    def reload_config(self):
+        """Reload configuration and reapply camera settings"""
+        try:
+            # Reload config using existing method
+            self.config = self._load_config("config.yaml")
+            
+            # Properly stop and close current camera
+            if self.camera:
+                try:
+                    self.camera.stop()
+                    self.camera.close()
+                    # Give the camera time to fully release
+                    time.sleep(0.5)
+                except Exception as e:
+                    self.logger.warning(f"Error stopping camera during reload: {e}")
+            
+            # Create a new camera instance to avoid state issues
+            try:
+                from picamera2 import Picamera2
+                self.camera = Picamera2()
+            except Exception as e:
+                self.logger.error(f"Error creating new camera instance: {e}")
+                return False
+            
+            # Reapply camera settings
+            if self._setup_camera():
+                self.logger.info("Configuration reloaded successfully")
+                return True
+            else:
+                self.logger.error("Failed to reapply camera settings after reload")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error reloading configuration: {e}")
+            return False
+    
     def cleanup(self):
         """Cleanup resources"""
         if self.camera:

@@ -32,12 +32,23 @@ Quick lookup of common symptoms → causes → fixes.
 - No images, keeps starting/stopping
   - Check SSH connection drops; use `screen` to persist
 
+- `Camera in Configured state trying acquire() requiring state Available` (preview_web.py)
+  - Cause: Camera not properly released before reconfiguration
+  - Fix: Camera state management improved in reload_controller_config(); restart preview if persists
+
 ### Runtime
 - Script dies after SSH disconnect
   - Use `screen -S timelapse ...`; reattach with `screen -r timelapse`
 
 - High CPU / slow
   - Lower resolution, increase interval, disable extras
+
+### Dependencies
+- `opencv-python-headless` build fails (CMake/autoreconf/Python dependency errors)
+  - Cause: Missing system build dependencies and Python development headers
+  - Fix: Install all dependencies: `sudo apt install -y python3-dev python3-pip libssl-dev libffi-dev cmake build-essential autotools-dev autoconf libtool pkg-config`
+  - Alternative: Use `pip install opencv-python` (larger but pre-built) or `sudo apt install python3-opencv`
+  - For Pi Zero W: `sudo apt install python3-opencv` is often most reliable
 
 ### Diagnostics
 - Verify Slack auth: `python3 -c "from slack_sdk import WebClient; import os; print(WebClient(token=os.environ['SLACK_BOT_TOKEN']).auth_test())"`
