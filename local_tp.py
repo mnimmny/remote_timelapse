@@ -453,6 +453,7 @@ class PiCameraController:
     
     def __init__(self, config_path: str = "config.yaml"):
         """Initialize the camera controller with configuration"""
+        self.config_path = config_path
         self.config = self._load_config(config_path)
         self.camera = None
         self.logger = self._setup_logging()
@@ -984,18 +985,22 @@ class PiCameraController:
     def reload_config(self):
         """Reload configuration and reapply camera settings"""
         try:
-            # Reload config using existing method
-            self.config = self._load_config("config.yaml")
+            # Reload config using the same path as initialization
+            self.config = self._load_config(self.config_path)
             
             # Properly stop and close current camera
             if self.camera:
                 try:
                     self.camera.stop()
                     self.camera.close()
-                    # Give the camera time to fully release
-                    time.sleep(0.5)
+                    # Set to None to ensure cleanup
+                    self.camera = None
+                    # Give the camera time to fully release (increased delay)
+                    time.sleep(2.0)
                 except Exception as e:
                     self.logger.warning(f"Error stopping camera during reload: {e}")
+                    # Force cleanup even if there was an error
+                    self.camera = None
             
             # Create a new camera instance to avoid state issues
             try:

@@ -32,9 +32,9 @@ Quick lookup of common symptoms → causes → fixes.
 - No images, keeps starting/stopping
   - Check SSH connection drops; use `screen` to persist
 
-- `Camera in Configured state trying acquire() requiring state Available` (preview_web.py)
-  - Cause: Camera not properly released before reconfiguration
-  - Fix: Camera state management improved in reload_controller_config(); restart preview if persists
+- `Camera in Configured/Acquired state trying acquire() requiring state Available` (preview_web.py)
+  - Cause: Camera not properly released before reconfiguration; PiCamera2 state machine conflict
+  - Fix: Enhanced camera cleanup with 2-second delay and forced resource release; restart preview if persists
 
 ### Runtime
 - Script dies after SSH disconnect
