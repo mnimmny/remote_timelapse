@@ -45,12 +45,12 @@ camera:
     # gain: 1.0  # Additional gain control (0.0-16.0), note if mode: "auto" this will be ignored
   
   # Image quality settings for macro
-  noise_reduction: true  # Reduce noise for better macro detail, note if focus: mode: "auto" this will be ignored
-  stabilization: true  # Image stabilization for close-up work, note if focus: mode: "auto" this will be ignored
+  noise_reduction: false  # Reduce noise for better macro detail, note if focus: mode: "auto" this will be ignored
+  stabilization: false    # Image stabilization for close-up work, note if focus: mode: "auto" this will be ignored
 
 # Timelapse settings
 timelapse:
-  enabled: true1
+  enabled: true
   interval: 60  # seconds between captures
   duration: 15600  # total duration in seconds (1 hour)
   output_dir: "~/timelapse_images"  # Uses $HOME environment variable
