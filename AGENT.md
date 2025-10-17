@@ -43,7 +43,7 @@ camera:
   stabilization: bool
   # Legacy settings (still supported)
   exposure_mode: "auto|night|sport|..."
-  awb_mode: "auto|daylight|tungsten|..."
+  awb_mode: "auto|cloudy|custom|daylight|fluorescent|incandescent|indoor|tungsten"
 
 timelapse:
   interval: int   # seconds

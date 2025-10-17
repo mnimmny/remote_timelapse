@@ -709,10 +709,22 @@ class PiCameraController:
             
             # AWB mode (only set if not auto)
             if self.config['camera']['awb_mode'] != 'auto':
-                controls_dict['AwbMode'] = getattr(
-                    controls.AwbModeEnum,
-                    self.config['camera']['awb_mode'].upper()
-                )
+                # Map config values to libcamera enum values
+                awb_mode_mapping = {
+                    'cloudy': controls.AwbModeEnum.Cloudy,
+                    'custom': controls.AwbModeEnum.Custom,
+                    'daylight': controls.AwbModeEnum.Daylight,
+                    'fluorescent': controls.AwbModeEnum.Fluorescent,
+                    'incandescent': controls.AwbModeEnum.Incandescent,
+                    'indoor': controls.AwbModeEnum.Indoor,
+                    'tungsten': controls.AwbModeEnum.Tungsten
+                }
+                
+                awb_mode = self.config['camera']['awb_mode'].lower()
+                if awb_mode in awb_mode_mapping:
+                    controls_dict['AwbMode'] = awb_mode_mapping[awb_mode]
+                else:
+                    self.logger.warning(f"Unknown AWB mode '{awb_mode}', using auto")
             
             # Focus control (macro settings only)
             focus_config = self.config['camera'].get('focus', {})

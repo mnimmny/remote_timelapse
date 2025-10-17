@@ -305,7 +305,7 @@ timelapse:
 ```yaml
 camera:
   exposure_mode: "night"
-  awb_mode: "tungsten"
+  awb_mode: "tungsten"  # auto, cloudy, custom, daylight, fluorescent, incandescent, indoor, tungsten
   brightness: 0.2
 timelapse:
   interval: 30
