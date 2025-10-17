@@ -988,35 +988,13 @@ class PiCameraController:
             # Reload config using the same path as initialization
             self.config = self._load_config(self.config_path)
             
-            # Properly stop and close current camera with more aggressive cleanup
-            if self.camera:
-                try:
-                    # Stop the camera
-                    if hasattr(self.camera, 'stop'):
-                        self.camera.stop()
-                    
-                    # Close the camera
-                    if hasattr(self.camera, 'close'):
-                        self.camera.close()
-                    
-                    # Force cleanup
-                    self.camera = None
-                    
-                    # Force garbage collection to ensure cleanup
-                    import gc
-                    gc.collect()
-                    
-                    # Give the camera time to fully release (longer delay)
-                    time.sleep(3.0)
-                    
-                except Exception as e:
-                    self.logger.warning(f"Error stopping camera during reload: {e}")
-                    # Force cleanup even if there was an error
-                    self.camera = None
-                    import gc
-                    gc.collect()
+            # Use the existing cleanup method for proper resource release
+            self.cleanup()
             
-            # Create a new camera instance to avoid state issues
+            # Give the system time to fully release camera resources
+            time.sleep(2.0)
+            
+            # Create a completely new camera instance
             try:
                 from picamera2 import Picamera2
                 self.camera = Picamera2()

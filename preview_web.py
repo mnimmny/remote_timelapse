@@ -20,6 +20,7 @@ app = Flask(__name__)
 controller = None
 last_config_mtime = 0
 manual_reload_requested = False
+manual_restart_requested = False
 
 def check_config_changes():
     """Check if config.yaml has been modified"""
@@ -60,15 +61,43 @@ def reload_controller_config():
                 print(f"Config reloaded at {datetime.now().strftime('%H:%M:%S')}")
                 return True
             else:
-                print("Failed to reload config - camera may be busy, try again in a few seconds")
-                return False
+                print("Failed to reload config - trying full controller restart...")
+                # Fallback: completely restart the controller
+                return restart_controller()
     except Exception as e:
         print(f"Error reloading config: {e}")
         return False
 
+def restart_controller():
+    """Completely restart the controller (fallback for reload failures)"""
+    global controller
+    try:
+        print("Restarting controller...")
+        
+        # Clean up old controller
+        if controller:
+            controller.cleanup()
+            controller = None
+        
+        # Give system time to release resources
+        time.sleep(3.0)
+        
+        # Create new controller
+        controller = PiCameraController()
+        if controller._setup_camera():
+            print(f"Controller restarted successfully at {datetime.now().strftime('%H:%M:%S')}")
+            return True
+        else:
+            print("Failed to restart controller")
+            return False
+            
+    except Exception as e:
+        print(f"Error restarting controller: {e}")
+        return False
+
 def keyboard_listener():
     """Listen for keyboard input to trigger manual reload"""
-    global manual_reload_requested
+    global manual_reload_requested, manual_restart_requested
     while True:
         try:
             # Check if there's input available (non-blocking)
@@ -77,6 +106,9 @@ def keyboard_listener():
                 if key.lower() == 'r':
                     print(f"\n🔄 Manual reload requested at {datetime.now().strftime('%H:%M:%S')}")
                     manual_reload_requested = True
+                elif key.lower() == 's':
+                    print(f"\n🔄 Manual restart requested at {datetime.now().strftime('%H:%M:%S')}")
+                    manual_restart_requested = True
                 elif key.lower() == 'q':
                     print(f"\n🛑 Quit requested at {datetime.now().strftime('%H:%M:%S')}")
                     break
@@ -87,14 +119,19 @@ def keyboard_listener():
 
 def generate_frames():
     """Generate video frames for web stream"""
-    global manual_reload_requested
+    global manual_reload_requested, manual_restart_requested
     frame_count = 0
     while True:
         try:
             # Check for config changes every 30 frames (~1 second at 30fps)
             if frame_count % 30 == 0:
+                # Check for manual restart request (highest priority)
+                if manual_restart_requested:
+                    print("Manual restart requested, restarting controller...")
+                    restart_controller()
+                    manual_restart_requested = False
                 # Check for manual reload request
-                if manual_reload_requested:
+                elif manual_reload_requested:
                     print("Manual reload requested, reapplying camera settings...")
                     reload_controller_config()
                     manual_reload_requested = False
@@ -207,6 +244,7 @@ if __name__ == '__main__':
     
     print("📝 Edit config.yaml and save - changes appear automatically!")
     print("🔄 Press 'r' + Enter to manually reload config")
+    print("🔄 Press 's' + Enter to restart controller (if reload fails)")
     print("⏹️  Press 'q' + Enter to quit, or Ctrl+C to stop")
     print("=" * 50)
     
