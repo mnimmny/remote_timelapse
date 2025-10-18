@@ -710,12 +710,21 @@ class PiCameraController:
             if exposure_config.get('mode') == 'manual':
                 # Manual exposure control
                 controls_dict['AeEnable'] = False
+                
+                # Set exposure time if provided
                 if 'shutter_speed' in exposure_config:
                     controls_dict['ExposureTime'] = exposure_config['shutter_speed']
-                if 'iso' in exposure_config:
-                    controls_dict['AnalogueGain'] = exposure_config['iso'] / 100.0
+                    controls_dict['ExposureTimeMode'] = controls.ExposureTimeModeEnum.Manual
+                
+                # Set analogue gain if provided (prioritize gain over iso)
                 if 'gain' in exposure_config:
                     controls_dict['AnalogueGain'] = exposure_config['gain']
+                    controls_dict['AnalogueGainMode'] = controls.AnalogueGainModeEnum.Manual
+                elif 'iso' in exposure_config:
+                    # Convert ISO to gain (ISO 100 = gain 1.0 is a common approximation)
+                    controls_dict['AnalogueGain'] = exposure_config['iso'] / 100.0
+                    controls_dict['AnalogueGainMode'] = controls.AnalogueGainModeEnum.Manual
+                    
             elif exposure_config.get('mode') == 'auto':
                 # Auto exposure
                 controls_dict['AeEnable'] = True
