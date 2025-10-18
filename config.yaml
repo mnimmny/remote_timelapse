@@ -17,8 +17,7 @@ camera:
   # Exposure and focus
   awb_mode: "auto"  # auto, cloudy, custom, daylight, fluorescent, incandescent, indoor, tungsten
   
-  # Image effects
-  image_effect: "none"  # none, negative, solarize, sketch, denoise, emboss, oilpaint, hatch, gpen, pastel, watercolor, film, blur, saturation, colorswap, washedout, posterise, colorpoint, colorbalance, cartoon, deinterlace1, deinterlace2
+  # Image effects (not supported by libcamera - removed)
   
   # Color settings
   brightness: 0.0  # -1.0 to 1.0

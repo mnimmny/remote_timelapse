@@ -548,8 +548,8 @@ class PiCameraController:
         
         if exposure_config:
             exposure_mode = exposure_config.get('mode', 'auto')
-            if exposure_mode not in ['auto', 'manual', 'sport', 'night']:
-                raise ValueError(f"Invalid exposure mode: {exposure_mode}. Must be 'auto', 'manual', 'sport', or 'night'")
+            if exposure_mode not in ['auto', 'manual', 'sport', 'night', 'normal', 'custom']:
+                raise ValueError(f"Invalid exposure mode: {exposure_mode}. Must be 'auto', 'manual', 'sport', 'night', 'normal', or 'custom'")
             
             # Check for mixed auto/manual configuration
             if exposure_mode in ['auto', 'sport', 'night']:
@@ -684,13 +684,26 @@ class PiCameraController:
             # Set camera controls (consolidated to avoid conflicts)
             controls_dict = {}
             
+            # Warn about unsupported image_effect setting
+            if 'image_effect' in self.config['camera']:
+                self.logger.warning("image_effect setting is not supported by libcamera and will be ignored")
+            
             # Legacy exposure mode (for backward compatibility)
             legacy_exposure_mode = self.config['camera'].get('exposure_mode', 'auto')
             if legacy_exposure_mode != 'auto':
-                controls_dict['ExposureMode'] = getattr(
-                    controls.ExposureModeEnum, 
-                    legacy_exposure_mode.upper()
-                )
+                # Map legacy exposure modes to libcamera AeExposureModeEnum
+                exposure_mode_mapping = {
+                    'sport': controls.AeExposureModeEnum.Short,
+                    'night': controls.AeExposureModeEnum.Long,
+                    'normal': controls.AeExposureModeEnum.Normal,
+                    'custom': controls.AeExposureModeEnum.Custom
+                }
+                
+                exposure_mode = legacy_exposure_mode.lower()
+                if exposure_mode in exposure_mode_mapping:
+                    controls_dict['AeExposureMode'] = exposure_mode_mapping[exposure_mode]
+                else:
+                    self.logger.warning(f"Unknown legacy exposure mode '{exposure_mode}', using auto")
             
             # New macro exposure settings
             exposure_config = self.config['camera'].get('exposure', {})

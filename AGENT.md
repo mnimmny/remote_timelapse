@@ -42,7 +42,7 @@ camera:
   noise_reduction: bool
   stabilization: bool
   # Legacy settings (still supported)
-  exposure_mode: "auto|night|sport|..."
+  exposure_mode: "auto|night|sport|normal|custom"  # Maps to AeExposureModeEnum
   awb_mode: "auto|cloudy|custom|daylight|fluorescent|incandescent|indoor|tungsten"
 
 timelapse:
